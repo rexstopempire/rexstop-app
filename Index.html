@@ -1,0 +1,2819 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REXSTOP SALES &amp; WARRANTY SYSTEM (CLOUD EDITION)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { box-sizing: border-box; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+ </head>
+ <body class="h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white font-sans min-h-screen flex flex-col relative select-none">
+
+  <div id="delete-modal" class="hidden fixed inset-0 bg-black/75 items-center justify-center z-50 backdrop-blur-sm">
+   <div class="bg-slate-800 border border-slate-700 rounded-lg p-8 max-w-sm mx-4 shadow-xl">
+    <h3 class="text-xl font-bold mb-4 flex items-center gap-3"><i data-lucide="alert-circle" class="text-red-500"></i> Confirm Delete</h3>
+    <p class="text-slate-300 mb-6">Are you sure you want to delete this record? This action will permanently remove it from your Google Sheet.</p>
+    <div class="flex gap-4">
+      <button type="button" id="confirm-delete-btn" class="flex-1 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-1"> 
+        <i data-lucide="trash-2" class="w-4 h-4"></i> Delete 
+      </button> 
+      <button type="button" id="cancel-delete-btn" class="flex-1 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg font-semibold transition"> Cancel </button>
+    </div>
+   </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-none bg-slate-800 border border-slate-700 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
+    <div id="toast-icon-wrapper" class="p-1 rounded-full bg-emerald-500/10 text-emerald-500">
+      <i id="toast-icon" data-lucide="check-circle" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <p id="toast-message" class="font-medium text-sm text-slate-100">Action performed successfully</p>
+    </div>
+  </div>
+
+  <div id="main-scroll-container" class="flex-1 w-full overflow-auto scroll-smooth">
+   <div class="p-6 max-w-7xl mx-auto">
+    
+    <div class="mb-8 flex items-center justify-between flex-wrap gap-4 border-b border-slate-800 pb-6">
+     <div>
+      <h1 class="text-4xl font-bold mb-2 tracking-tight">📊 REXSTOP CLOUD SYSTEM</h1>
+      <p class="text-slate-400">Sales, Warranty Claims, Debtors, Inventory, &amp; Business Overheads</p>
+     </div>
+     <div class="flex items-center gap-3">
+       <div id="sync-status-indicator" class="bg-slate-800/80 border border-slate-700 rounded-full px-4 py-2 flex items-center gap-2 text-xs font-semibold cursor-pointer hover:border-blue-500 transition" onclick="switchTab('tab-sync')">
+         <span class="w-2.5 h-2.5 rounded-full bg-red-500" id="status-dot"></span>
+         <span id="status-text" class="text-slate-300">Offline (Awaiting Sheet URL)</span>
+       </div>
+     </div>
+    </div>
+
+    <div class="flex gap-2 mb-8 border-b border-slate-700 overflow-x-auto pb-px scrollbar-none">
+      <button type="button" id="tab-dashboard" class="tab-btn px-5 py-3 font-semibold border-b-2 border-blue-500 text-blue-400 bg-slate-800/40 rounded-t-lg transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>Dashboard 
+      </button> 
+      <button type="button" id="tab-entry" class="tab-btn px-5 py-3 font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="plus-circle" class="w-4 h-4"></i>Add Sales 
+      </button> 
+      <button type="button" id="tab-warranty" class="tab-btn px-5 py-3 font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="shield-check" class="w-4 h-4"></i>Claim Warranty 
+      </button> 
+      <button type="button" id="tab-debtor" class="tab-btn px-5 py-3 font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="user-check" class="w-4 h-4"></i>Debtor Management 
+      </button> 
+      <button type="button" id="tab-stock" class="tab-btn px-5 py-3 font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="package" class="w-4 h-4"></i>Stock Count 
+      </button> 
+      <button type="button" id="tab-commission" class="tab-btn px-5 py-3 font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="wallet" class="w-4 h-4"></i>Commission 
+      </button>
+      <button type="button" id="tab-overhead" class="tab-btn px-5 py-3 font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="building-2" class="w-4 h-4"></i>Overhead Costs 
+      </button>
+      <button type="button" id="tab-sync" class="tab-btn px-5 py-3 font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0"> 
+        <i data-lucide="cloud" class="w-4 h-4"></i>Cloud Sync 
+      </button>
+    </div>
+
+    <div id="dashboard-tab" class="tab-content block space-y-8">
+     <div class="bg-slate-800/40 rounded-xl p-6 border border-slate-700/80 shadow-lg">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold flex items-center gap-2"><i data-lucide="calendar" class="text-blue-500 w-5 h-5"></i> Filter Timeline</h2>
+        <button type="button" id="clear-dashboard-filter" class="text-xs text-slate-400 hover:text-white transition underline">Reset filters</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+       <div>
+         <label class="block text-xs text-slate-400 mb-2 font-medium">Start Date</label> 
+         <input type="date" id="filter-start-date" class="w-full px-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm">
+       </div>
+       <div>
+         <label class="block text-xs text-slate-400 mb-2 font-medium">End Date</label> 
+         <input type="date" id="filter-end-date" class="w-full px-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm">
+       </div>
+       <div>
+         <label class="block text-xs text-slate-400 mb-2 font-medium">Quick Presets</label> 
+         <select id="quick-view" class="w-full px-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm"> 
+           <option value="all">All Time</option> 
+           <option value="month">This Month</option> 
+           <option value="year">This Year</option> 
+         </select>
+       </div>
+       <div class="flex items-end">
+         <button type="button" id="apply-filter" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-lg font-semibold transition text-sm flex items-center justify-center gap-2"> 
+           <i data-lucide="check" class="w-4 h-4"></i> Apply Filters 
+         </button>
+       </div>
+      </div>
+     </div>
+
+     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-4 shadow-md hover:border-blue-500 transition duration-300">
+       <div class="flex flex-col justify-between h-full">
+         <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Sales</span>
+         <span id="kpi-sales" class="text-xl font-black text-blue-400 mt-2">RM 0.00</span>
+         <div class="flex items-center justify-between mt-3 text-blue-500/80">
+           <span class="text-[10px] text-slate-500">Gross Intake</span>
+           <i data-lucide="trending-up" class="w-4 h-4"></i>
+         </div>
+       </div>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-4 shadow-md hover:border-rose-500 transition duration-300">
+       <div class="flex flex-col justify-between h-full">
+         <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Parts &amp; Stock</span>
+         <span id="kpi-costs" class="text-xl font-black text-rose-400 mt-2">RM 0.00</span>
+         <div class="flex items-center justify-between mt-3 text-rose-500/80">
+           <span class="text-[10px] text-slate-500">Stock Outflow</span>
+           <i data-lucide="trending-down" class="w-4 h-4"></i>
+         </div>
+       </div>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-4 shadow-md hover:border-amber-600 transition duration-300">
+       <div class="flex flex-col justify-between h-full">
+         <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Overhead Costs</span>
+         <span id="kpi-overheads" class="text-xl font-black text-amber-500 mt-2">RM 0.00</span>
+         <div class="flex items-center justify-between mt-3 text-amber-500">
+           <span class="text-[10px] text-slate-500">Operational Expenses</span>
+           <i data-lucide="building-2" class="w-4 h-4"></i>
+         </div>
+       </div>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-4 shadow-md hover:border-red-600 transition duration-300">
+       <div class="flex flex-col justify-between h-full">
+         <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Warranty Loss</span>
+         <span id="kpi-loss" class="text-xl font-black text-red-500 mt-2">RM 0.00</span>
+         <div class="flex items-center justify-between mt-3 text-red-600">
+           <span class="text-[10px] text-slate-500">Warranty Costs</span>
+           <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+         </div>
+       </div>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-4 shadow-md hover:border-emerald-500 transition duration-300">
+       <div class="flex flex-col justify-between h-full">
+         <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Net Profit</span>
+         <span id="kpi-net-profit" class="text-xl font-black text-emerald-400 mt-2">RM 0.00</span>
+         <div class="flex items-center justify-between mt-3 text-emerald-500/80">
+           <span class="text-[10px] text-slate-500">Post Overhead</span>
+           <i data-lucide="diamond" class="w-4 h-4"></i>
+         </div>
+       </div>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-4 shadow-md hover:border-violet-500 transition duration-300">
+       <div class="flex flex-col justify-between h-full">
+         <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Unpaid Debt</span>
+         <span id="kpi-debt" class="text-xl font-black text-violet-400 mt-2">RM 0.00</span>
+         <div class="flex items-center justify-between mt-3 text-violet-500/80">
+           <span class="text-[10px] text-slate-500">Outstanding Balance</span>
+           <i data-lucide="help-circle" class="w-4 h-4"></i>
+         </div>
+       </div>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-4 shadow-md hover:border-amber-400 transition duration-300">
+       <div class="flex flex-col justify-between h-full">
+         <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Profit Margin</span>
+         <span id="kpi-margin" class="text-xl font-black text-amber-400 mt-2">0.0%</span>
+         <div class="flex items-center justify-between mt-3 text-amber-500/80">
+           <span class="text-[10px] text-slate-500">Business Margin</span>
+           <i data-lucide="percent" class="w-4 h-4"></i>
+         </div>
+       </div>
+      </div>
+     </div>
+
+     <div class="bg-slate-800/40 rounded-xl p-6 border border-slate-700/80 shadow-lg">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+       <div>
+        <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="line-chart" class="text-blue-500"></i> Performance Matrix</h2>
+        <p class="text-slate-400 text-xs mt-1">Interactive timeline of sales against net profit trends</p>
+       </div>
+       <div class="flex gap-3">
+        <select id="graph-period" class="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"> 
+          <option value="day">Daily Breakdown</option> 
+          <option value="month" selected>Monthly Overview</option> 
+          <option value="year">Annual Summary</option> 
+        </select>
+       </div>
+      </div>
+      <div class="bg-slate-900/40 rounded-lg p-4 h-72">
+       <canvas id="revenue-chart"></canvas>
+      </div>
+     </div>
+
+     <div>
+       <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+         <h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="clipboard-list" class="text-blue-500"></i> Sales Transactions Registry</h2>
+         
+         <div class="flex items-center gap-2">
+           <select id="sales-month-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+             <option value="all">All Months</option>
+             <option value="01">January</option>
+             <option value="02">February</option>
+             <option value="03">March</option>
+             <option value="04">April</option>
+             <option value="05">May</option>
+             <option value="06">June</option>
+             <option value="07">July</option>
+             <option value="08">August</option>
+             <option value="09">September</option>
+             <option value="10">October</option>
+             <option value="11">November</option>
+             <option value="12">December</option>
+           </select>
+           <select id="sales-year-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+           </select>
+         </div>
+
+        </div>
+        <div class="flex gap-3 flex-wrap items-center">
+         <input type="text" id="sales-search" class="px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-400 w-64" placeholder="Filter bill, name, or technician..."> 
+         <button type="button" id="sales-filter-btn" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 border border-slate-700 rounded-lg text-sm font-semibold transition flex items-center gap-2"> 
+           <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Filters 
+         </button> 
+         <button type="button" id="sales-clear-filter-btn" class="bg-slate-800/40 hover:bg-slate-800 text-slate-400 px-4 py-2 border border-transparent rounded-lg text-sm font-semibold transition flex items-center gap-2"> 
+           <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset 
+         </button>
+        </div>
+       </div>
+
+       <div id="sales-filter-panel" class="hidden bg-slate-800/60 border border-slate-700 rounded-xl p-6 mb-6">
+        <h3 class="text-sm font-bold text-blue-400 mb-4 uppercase tracking-wider">Advanced Filtering Matrix</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+         <div>
+          <label class="block text-xs text-slate-400 mb-2 font-medium">Bill Number</label> 
+          <input type="text" id="filter-bill" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white text-sm focus:outline-none focus:border-blue-500" placeholder="e.g. BILL-001">
+         </div>
+         <div>
+          <label class="block text-xs text-slate-400 mb-2 font-medium">Customer Name</label> 
+          <input type="text" id="filter-customer" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white text-sm focus:outline-none focus:border-blue-500" placeholder="e.g. Jane">
+         </div>
+         <div>
+          <label class="block text-xs text-slate-400 mb-2 font-medium">Technician (PIC)</label> 
+          <input type="text" id="filter-tech" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white text-sm focus:outline-none focus:border-blue-500" placeholder="e.g. Ahmad">
+         </div>
+         <div>
+          <label class="block text-xs text-slate-400 mb-2 font-medium">Filter Specific Date</label> 
+          <input type="date" id="filter-sales-date" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white text-sm focus:outline-none focus:border-blue-500">
+         </div>
+        </div>
+        <div class="flex gap-3 mt-4 justify-end">
+         <button type="button" id="apply-sales-filter" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xs font-semibold transition">Execute Filter</button> 
+         <button type="button" id="reset-sales-filter" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xs font-semibold transition">Clear Values</button>
+        </div>
+       </div>
+
+       <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-800/20">
+        <table class="w-full text-sm border-collapse">
+         <thead>
+          <tr class="border-b border-slate-800 bg-slate-900/40 text-left">
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Bill No</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Date</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Customer</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Technician</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Model</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Item / Repair</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Sales (RM)</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Cost (RM)</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Loss (RM)</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Comm (RM)</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Net Profit</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Action</th>
+          </tr>
+         </thead>
+         <tbody id="sales-table-body" class="divide-y divide-slate-800/80">
+          <tr>
+           <td colspan="12" class="px-4 py-8 text-center text-slate-500">No records found matching criteria.</td>
+          </tr>
+         </tbody>
+        </table>
+       </div>
+
+       <div class="flex items-center justify-between mt-6 flex-wrap gap-4">
+        <div class="text-slate-400 text-xs"><span id="sales-records-info" class="font-medium">Showing 0 of 0 records</span></div>
+        <div class="flex gap-2">
+          <button type="button" id="sales-prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+            <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous 
+          </button> 
+          <button type="button" id="sales-next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+            Next <i data-lucide="chevron-right" class="w-4 h-4"></i> 
+          </button>
+        </div>
+       </div>
+     </div>
+
+     <div class="pt-8 border-t border-slate-800">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+       <div class="flex items-center gap-3">
+         <h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="shield-alert" class="text-rose-500"></i> Active Warranty Claims</h2>
+         
+         <div class="flex items-center gap-2">
+           <select id="warranty-month-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+             <option value="all">All Months</option>
+             <option value="01">January</option>
+             <option value="02">February</option>
+             <option value="03">March</option>
+             <option value="04">April</option>
+             <option value="05">May</option>
+             <option value="06">June</option>
+             <option value="07">July</option>
+             <option value="08">August</option>
+             <option value="09">September</option>
+             <option value="10">October</option>
+             <option value="11">November</option>
+             <option value="12">December</option>
+           </select>
+           <select id="warranty-year-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+           </select>
+         </div>
+
+       </div>
+       <div class="flex items-center gap-2">
+         <select id="warranty-status-filter" class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500">
+           <option value="all">All Statuses</option>
+           <option value="pending" selected>Pending Claims</option>
+           <option value="completed">Completed Claims</option>
+         </select>
+       </div>
+      </div>
+      
+      <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-800/20">
+       <table class="w-full text-sm border-collapse">
+        <thead>
+         <tr class="border-b border-slate-800 bg-slate-900/40 text-left">
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Date</th>
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Bill No</th>
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Customer</th>
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Item &amp; Issue</th>
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Rep. Cost (RM)</th>
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Loss Assigned</th>
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Status</th>
+          <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Action</th>
+         </tr>
+        </thead>
+        <tbody id="warranty-table-body" class="divide-y divide-slate-800/80">
+         <tr>
+          <td colspan="8" class="px-4 py-8 text-center text-slate-500">No active warranty claims logged.</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+
+      <div class="flex items-center justify-between mt-6 flex-wrap gap-4">
+       <div class="text-slate-400 text-xs"><span id="warranty-records-info" class="font-medium">Showing 0 of 0 records</span></div>
+       <div class="flex gap-2">
+         <button type="button" id="warranty-prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+           <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous 
+         </button> 
+         <button type="button" id="warranty-next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+           Next <i data-lucide="chevron-right" class="w-4 h-4"></i> 
+         </button>
+       </div>
+      </div>
+     </div>
+    </div>
+
+    <div id="entry-tab" class="tab-content hidden">
+     <div class="max-w-4xl mx-auto">
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-8 shadow-xl">
+       <h2 class="text-2xl font-bold mb-2 flex items-center gap-2"><i data-lucide="plus-circle" class="text-blue-500"></i> New Transaction Entry</h2>
+       <p class="text-slate-400 text-xs mb-8">Save transactional parameters directly to your Google Sheet</p>
+       
+       <form id="sales-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Bill Number *</label> 
+          <input type="text" id="form-billno" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm font-mono" placeholder="e.g. BILL-001" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Transaction Date *</label> 
+          <input type="date" id="form-date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Customer Name</label> 
+          <input type="text" id="form-name" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Jane Smith">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Phone Number</label> 
+          <input type="tel" id="form-phone" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. 0123456789">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Device Model *</label> 
+          <input type="text" id="form-model" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. iPhone 15 Pro Max" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Replacement Part / Repair Item *</label> 
+          <input type="text" id="form-item" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Screen Replacement" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">PIC / Technician</label> 
+          <input type="text" id="form-pic" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Ahmad">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Parts Supplier</label> 
+          <input type="text" id="form-supplier" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Smart Parts Ltd">
+        </div>
+        
+        <div class="border-t border-slate-800 md:col-span-2 pt-4 my-2">
+          <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-4">Financial Metrics</h3>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Sales Invoice Amount (RM) *</label> 
+          <input type="number" id="form-sales" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Purchase / Part Cost (RM) *</label> 
+          <input type="number" id="form-cost" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Profit (RM)</label> 
+          <input type="number" id="form-profit" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 focus:outline-none text-sm cursor-not-allowed" placeholder="0.00" readonly>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Active Assigned Loss (RM)</label> 
+          <input type="number" id="form-loss" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 focus:outline-none text-sm cursor-not-allowed" value="0.00" readonly>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Technician Commission (RM) <span class="text-xs text-blue-400 font-normal">(Auto 20% or Custom)</span></label> 
+          <input type="number" id="form-commission" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Net Corporate Profit (RM)</label> 
+          <input type="number" id="form-net-profit" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 focus:outline-none text-sm cursor-not-allowed" placeholder="0.00" readonly>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Internal Notes / Log details</label> 
+          <input type="text" id="form-note" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="Any warranty specs, specific repair issues...">
+        </div>
+        
+        <div class="md:col-span-2 flex gap-4 mt-6">
+          <button type="submit" id="sales-submit-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm shadow-md"> 
+            <i data-lucide="save"></i> Save Sale Record 
+          </button> 
+          <button type="button" id="reset-form-btn" class="flex-1 bg-slate-700 hover:bg-slate-600 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm"> 
+            <i data-lucide="x"></i> Clear Fields 
+          </button>
+        </div>
+       </form>
+      </div>
+     </div>
+    </div>
+
+    <div id="warranty-tab-view" class="tab-content hidden">
+     <div class="max-w-4xl mx-auto">
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-8 shadow-xl">
+       <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-rose-500"><i data-lucide="shield-alert"></i> Initiate Warranty Claim</h2>
+       <p class="text-slate-400 text-xs mb-8">Creates a loss log linked to a historical invoice, immediately calculating post-warranty net profit margins.</p>
+       
+       <form id="warranty-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Linked Bill Number *</label> 
+          <input type="text" id="warranty-billno" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm font-mono" placeholder="Type Bill No to autofill details" required>
+          <span id="warranty-autofill-status" class="text-[10px] text-amber-500 mt-1 block"></span>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Claim Process Date *</label> 
+          <input type="date" id="warranty-date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Customer Name *</label> 
+          <input type="text" id="warranty-name" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. John Doe" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Phone Number *</label> 
+          <input type="tel" id="warranty-phone" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. 0123456789" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Device Model *</label> 
+          <input type="text" id="warranty-model" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. iPhone 15" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Warranty Item / Replacement Defect *</label> 
+          <input type="text" id="warranty-item" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Faulty LCD Replacement" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Replacement Supplier</label> 
+          <input type="text" id="warranty-supplier" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Supplier XYZ">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Defect Resolution Status</label> 
+          <select id="warranty-status" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm"> 
+            <option value="pending">🔵 Pending Investigation</option> 
+            <option value="completed">✅ Resolved / Fixed</option> 
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Parts / Repair Outflow Cost (RM) *</label> 
+          <input type="number" id="warranty-cost" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Assigned Loss Charge (RM)</label> 
+          <input type="number" id="warranty-loss" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01">
+          <span class="text-[10px] text-slate-400 mt-1 block">Usually equal to Repair Cost if replacement isn't covered by supplier.</span>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Faulty symptoms / Resolution notes</label> 
+          <input type="text" id="warranty-notes" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="Touch unresponsive, green tint, color flickering...">
+        </div>
+        
+        <div class="md:col-span-2 flex gap-4 mt-6">
+          <button type="submit" id="warranty-submit-btn" class="flex-1 bg-rose-600 hover:bg-rose-700 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm shadow-md"> 
+            <i data-lucide="save"></i> Record Warranty Claim 
+          </button> 
+          <button type="button" id="reset-warranty-form" class="flex-1 bg-slate-700 hover:bg-slate-600 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm"> 
+            <i data-lucide="x"></i> Clear Form 
+          </button>
+        </div>
+       </form>
+      </div>
+     </div>
+    </div>
+
+    <div id="debtor-tab-view" class="tab-content hidden space-y-8">
+     <div class="max-w-4xl mx-auto">
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-8 shadow-xl">
+       <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-violet-400"><i data-lucide="user-plus"></i> New Debtor Profile</h2>
+       <p class="text-slate-400 text-xs mb-8">Create an outstanding balance tracking profile for customers on payment plans.</p>
+       
+       <form id="debtor-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Associated Bill Number *</label> 
+          <input type="text" id="debtor-billno" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm font-mono" placeholder="Type Bill No to auto-load customer info" required>
+          <span id="debtor-autofill-status" class="text-[10px] text-amber-500 mt-1 block"></span>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Debtor Name *</label> 
+          <input type="text" id="debtor-name" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. John Doe" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Phone Number *</label> 
+          <input type="tel" id="debtor-phone" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. 0123456789" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Total Amount Due (RM) *</label> 
+          <input type="number" id="debtor-total" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Paid Amount To Date (RM) *</label> 
+          <input type="number" id="debtor-paid" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Net Balance Unpaid (RM)</label> 
+          <input type="number" id="debtor-balance" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 focus:outline-none text-sm cursor-not-allowed" placeholder="0.00" readonly>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Repair Completion Date *</label> 
+          <input type="date" id="debtor-repair-date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Follow-up Target Date</label> 
+          <input type="date" id="debtor-followup-date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Instalment Plan Notes</label> 
+          <textarea id="debtor-notes" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Will clear remaining on next payday..." rows="2"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Collection Status</label> 
+          <select id="debtor-status" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm"> 
+            <option value="pending">🔵 Outstanding Balance</option> 
+            <option value="completed">✅ Settled &amp; Paid</option> 
+          </select>
+        </div>
+        
+        <div class="md:col-span-2 flex gap-4 mt-6">
+          <button type="submit" id="debtor-submit-btn" class="flex-1 bg-violet-600 hover:bg-violet-700 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm shadow-md"> 
+            <i data-lucide="save"></i> Save Debtor Profile 
+          </button> 
+          <button type="button" id="reset-debtor-form" class="flex-1 bg-slate-700 hover:bg-slate-600 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm"> 
+            <i data-lucide="x"></i> Clear Form 
+          </button>
+        </div>
+       </form>
+      </div>
+     </div>
+
+     <div class="pt-6">
+       <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+         <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="users" class="text-violet-400"></i> Active Debt Ledger</h2>
+         
+         <div class="flex items-center gap-2">
+           <select id="debtor-month-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+             <option value="all">All Months</option>
+             <option value="01">January</option>
+             <option value="02">February</option>
+             <option value="03">March</option>
+             <option value="04">April</option>
+             <option value="05">May</option>
+             <option value="06">June</option>
+             <option value="07">July</option>
+             <option value="08">August</option>
+             <option value="09">September</option>
+             <option value="10">October</option>
+             <option value="11">November</option>
+             <option value="12">December</option>
+           </select>
+           <select id="debtor-year-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+           </select>
+         </div>
+
+        </div>
+        <div class="flex gap-3">
+          <input type="text" id="debtor-search" class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 w-64" placeholder="Search debtor name or bill...">
+        </div>
+       </div>
+
+       <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-800/20">
+        <table class="w-full text-sm border-collapse">
+         <thead>
+          <tr class="border-b border-slate-800 bg-slate-900/40 text-left">
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Bill No</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Debtor Name</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Phone</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Total Owed (RM)</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Paid So Far (RM)</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Remaining Bal (RM)</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Repair Date</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Next Follow-up</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Status</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Notes</th>
+           <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Action</th>
+          </tr>
+         </thead>
+         <tbody id="debtor-table-body" class="divide-y divide-slate-800/80">
+          <tr>
+           <td colspan="11" class="px-4 py-8 text-center text-slate-500">No debtor ledger profiles currently saved.</td>
+          </tr>
+         </tbody>
+        </table>
+       </div>
+
+       <div class="flex items-center justify-between mt-6 flex-wrap gap-4">
+        <div class="text-slate-400 text-xs"><span id="debtor-records-info" class="font-medium">Showing 0 of 0 records</span></div>
+        <div class="flex gap-2">
+          <button type="button" id="debtor-prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+            <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous 
+          </button> 
+          <button type="button" id="debtor-next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+            Next <i data-lucide="chevron-right" class="w-4 h-4"></i> 
+          </button>
+        </div>
+       </div>
+     </div>
+    </div>
+
+    <div id="stock-tab-view" class="tab-content hidden space-y-8">
+     <div class="max-w-4xl mx-auto">
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-8 shadow-xl">
+       <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-amber-500"><i data-lucide="package"></i> Stock Inventory Management</h2>
+       <p class="text-slate-400 text-xs mb-8">Record incoming stock purchases from suppliers and outgoing stock (usage, damage, or sales).</p>
+       
+       <form id="stock-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Transaction Type *</label> 
+          <select id="stock-type" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" required> 
+            <option value="IN">🟢 Stock IN (Purchase / Restock)</option> 
+            <option value="OUT">🔴 Stock OUT (Usage / Discard)</option> 
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Transaction Date *</label> 
+          <input type="date" id="stock-date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Item Name / Component *</label> 
+          <input type="text" id="stock-item-name" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. iPhone 13 Screen assembly" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Supplier Name</label> 
+          <input type="text" id="stock-supplier" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Smart Parts Ltd">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Quantity *</label> 
+          <input type="number" id="stock-qty" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="1" min="1" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Part Unit Cost (RM) *</label> 
+          <input type="number" id="stock-unit-cost" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Reason / Category *</label> 
+          <input type="text" id="stock-reason" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Restock, Damaged, Internal Use" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Authorized PIC *</label> 
+          <input type="text" id="stock-pic" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. Ahmad" required>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Detailed Notes</label> 
+          <input type="text" id="stock-notes" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="Any extra information about this inventory action...">
+        </div>
+        
+        <div class="md:col-span-2 flex gap-4 mt-6">
+          <button type="submit" id="stock-submit-btn" class="flex-1 bg-amber-600 hover:bg-amber-700 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm shadow-md"> 
+            <i data-lucide="save"></i> Log Inventory Record 
+          </button> 
+          <button type="button" id="reset-stock-form" class="flex-1 bg-slate-700 hover:bg-slate-600 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm"> 
+            <i data-lucide="x"></i> Clear Form 
+          </button>
+        </div>
+       </form>
+      </div>
+     </div>
+
+     <div class="pt-6">
+       <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+         <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="list" class="text-amber-500"></i> Stock History Ledger</h2>
+         
+         <div class="flex items-center gap-2">
+           <select id="stock-month-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+             <option value="all">All Months</option>
+             <option value="01">January</option>
+             <option value="02">February</option>
+             <option value="03">March</option>
+             <option value="04">April</option>
+             <option value="05">May</option>
+             <option value="06">June</option>
+             <option value="07">July</option>
+             <option value="08">August</option>
+             <option value="09">September</option>
+             <option value="10">October</option>
+             <option value="11">November</option>
+             <option value="12">December</option>
+           </select>
+           <select id="stock-year-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+           </select>
+         </div>
+        </div>
+       </div>
+
+       <div class="mb-8">
+         <h3 class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
+           <i data-lucide="arrow-down-circle" class="w-4 h-4"></i> 🟢 Stock IN (Restocks & Purchases)
+         </h3>
+         <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-800/20">
+          <table class="w-full text-sm border-collapse">
+           <thead>
+            <tr class="border-b border-slate-800 bg-slate-900/40 text-left">
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Date</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Item Name / Component</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Supplier</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Reason</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Qty</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Unit Cost (RM)</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Total Spent (RM)</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">PIC</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Action</th>
+            </tr>
+           </thead>
+           <tbody id="stock-in-table-body" class="divide-y divide-slate-800/80">
+            <tr>
+             <td colspan="9" class="px-4 py-8 text-center text-slate-500">No stock inflows recorded.</td>
+            </tr>
+           </tbody>
+          </table>
+         </div>
+         <div class="flex items-center justify-between mt-3 flex-wrap gap-4">
+          <div class="text-slate-400 text-xs"><span id="stock-in-records-info" class="font-medium">Showing 0 of 0 records</span></div>
+          <div class="flex gap-2">
+            <button type="button" id="stock-in-prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition flex items-center gap-1"> 
+              <i data-lucide="chevron-left" class="w-3 h-3"></i> Prev 
+            </button> 
+            <button type="button" id="stock-in-next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition flex items-center gap-1"> 
+              Next <i data-lucide="chevron-right" class="w-3 h-3"></i> 
+            </button>
+          </div>
+         </div>
+       </div>
+
+       <div>
+         <h3 class="text-sm font-bold text-rose-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
+           <i data-lucide="arrow-up-circle" class="w-4 h-4"></i> 🔴 Stock OUT (Usage & Damages)
+         </h3>
+         <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-800/20">
+          <table class="w-full text-sm border-collapse">
+           <thead>
+            <tr class="border-b border-slate-800 bg-slate-900/40 text-left">
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Date</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Item Name / Component</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Supplier</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Reason</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Qty</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Unit Cost (RM)</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Total Outflow (RM)</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">PIC</th>
+             <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Action</th>
+            </tr>
+           </thead>
+           <tbody id="stock-out-table-body" class="divide-y divide-slate-800/80">
+            <tr>
+             <td colspan="9" class="px-4 py-8 text-center text-slate-500">No stock outflows recorded.</td>
+            </tr>
+           </tbody>
+          </table>
+         </div>
+         <div class="flex items-center justify-between mt-3 flex-wrap gap-4">
+          <div class="text-slate-400 text-xs"><span id="stock-out-records-info" class="font-medium">Showing 0 of 0 records</span></div>
+          <div class="flex gap-2">
+            <button type="button" id="stock-out-prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition flex items-center gap-1"> 
+              <i data-lucide="chevron-left" class="w-3 h-3"></i> Prev 
+            </button> 
+            <button type="button" id="stock-out-next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition flex items-center gap-1"> 
+              Next <i data-lucide="chevron-right" class="w-3 h-3"></i> 
+            </button>
+          </div>
+         </div>
+       </div>
+
+     </div>
+    </div>
+
+    <div id="commission-tab-view" class="tab-content hidden space-y-8">
+      <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-6">
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-3">
+              <h2 class="text-2xl font-bold flex items-center gap-2 text-violet-400"><i data-lucide="wallet"></i> Technician Commission Board</h2>
+              
+              <div class="flex items-center gap-2">
+                <select id="commission-month-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+                  <option value="all">All Months</option>
+                  <option value="01">January</option>
+                  <option value="02">February</option>
+                  <option value="03">March</option>
+                  <option value="04">April</option>
+                  <option value="05">May</option>
+                  <option value="06">June</option>
+                  <option value="07">July</option>
+                  <option value="08">August</option>
+                  <option value="09">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+                <select id="commission-year-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+                </select>
+              </div>
+
+            </div>
+            <p class="text-slate-400 text-xs mt-1">Aggregated breakdown of technical earnings per personnel</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-800/20">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+             <tr class="border-b border-slate-800 bg-slate-900/40 text-left">
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Technician / PIC</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Invoices Resolved</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Gross Sales (RM)</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Total Parts Cost (RM)</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Earned Commission (RM)</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Company Net Keep (RM)</th>
+             </tr>
+            </thead>
+            <tbody id="commission-table-body" class="divide-y divide-slate-800/80">
+             <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">No operational records to calculate performance.</td>
+             </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between mt-6 flex-wrap gap-4">
+         <div class="text-slate-400 text-xs"><span id="commission-records-info" class="font-medium">Showing 0 of 0 records</span></div>
+         <div class="flex gap-2">
+           <button type="button" id="commission-prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+             <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous 
+           </button> 
+           <button type="button" id="commission-next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+             Next <i data-lucide="chevron-right" class="w-4 h-4"></i> 
+           </button>
+         </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="overhead-tab-view" class="tab-content hidden space-y-8">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-slate-800/40 border border-slate-700/80 rounded-xl p-8 shadow-xl">
+          <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-amber-500"><i data-lucide="building-2"></i> Record Business Overhead Cost</h2>
+          <p class="text-slate-400 text-xs mb-8">Log fixed and variable operating expenses (Rent, Bills, Marketing, Wages) to compute accurate bottom-line company net profits.</p>
+          
+          <form id="overhead-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-slate-300 mb-2">Expense Date *</label> 
+              <input type="date" id="overhead-date" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" required>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-300 mb-2">Category *</label> 
+              <select id="overhead-category" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" required> 
+                <option value="Rent">Shop Rental</option> 
+                <option value="Utilities">Utilities (Electricity, Water, WiFi)</option> 
+                <option value="Salaries">Fixed Salaries / Wages</option> 
+                <option value="Marketing">Marketing &amp; Ads</option> 
+                <option value="Tools">Tooling &amp; Equipment Maintenance</option> 
+                <option value="Others">Others</option> 
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-300 mb-2">Expense Description *</label> 
+              <input type="text" id="overhead-desc" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="e.g. May Shop Lot Rental Payment" required>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-300 mb-2">Total Paid Amount (RM) *</label> 
+              <input type="number" id="overhead-amount" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="0.00" step="0.01" required>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold text-slate-300 mb-2">Internal Notes</label> 
+              <input type="text" id="overhead-notes" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="Optional notes (e.g., payment invoice number)">
+            </div>
+            
+            <div class="md:col-span-2 flex gap-4 mt-6">
+              <button type="submit" id="overhead-submit-btn" class="flex-1 bg-amber-600 hover:bg-amber-700 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm shadow-md"> 
+                <i data-lucide="save"></i> Record Expense 
+              </button> 
+              <button type="button" id="reset-overhead-form" class="flex-1 bg-slate-700 hover:bg-slate-600 px-6 py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 text-sm"> 
+                <i data-lucide="x"></i> Clear Form 
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="pt-6">
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+         <div class="flex items-center gap-3">
+          <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="receipt" class="text-amber-500"></i> Business Operating Expenses Ledger</h2>
+          
+          <div class="flex items-center gap-2">
+            <select id="overhead-month-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+              <option value="all">All Months</option>
+              <option value="01">January</option>
+              <option value="02">February</option>
+              <option value="03">March</option>
+              <option value="04">April</option>
+              <option value="05">May</option>
+              <option value="06">June</option>
+              <option value="07">July</option>
+              <option value="08">August</option>
+              <option value="09">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+            <select id="overhead-year-smart-filter" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 font-medium select-none">
+            </select>
+          </div>
+
+         </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-800/20">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+             <tr class="border-b border-slate-800 bg-slate-900/40 text-left">
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Date</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Category</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Description</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-right">Amount (RM)</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider">Notes</th>
+              <th class="px-4 py-3.5 text-slate-400 font-bold text-xs uppercase tracking-wider text-center">Action</th>
+             </tr>
+            </thead>
+            <tbody id="overhead-table-body" class="divide-y divide-slate-800/80">
+             <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">No operational overhead cost entries stored yet.</td>
+             </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between mt-6 flex-wrap gap-4">
+         <div class="text-slate-400 text-xs"><span id="overhead-records-info" class="font-medium">Showing 0 of 0 records</span></div>
+         <div class="flex gap-2">
+           <button type="button" id="overhead-prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+             <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous 
+           </button> 
+           <button type="button" id="overhead-next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1"> 
+             Next <i data-lucide="chevron-right" class="w-4 h-4"></i> 
+           </button>
+         </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sync-tab-view" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1 bg-slate-800/40 border border-slate-700/80 rounded-xl p-6 shadow-xl space-y-6">
+          <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="cloud" class="text-blue-500"></i> Cloud Configuration</h2>
+          <p class="text-slate-400 text-xs leading-relaxed">Save your Google Apps Script Web App URL here. All data operations will be written directly to your Cloud Sheet.</p>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wider">Web App URL</label>
+              <input type="url" id="sheet-endpoint-url" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-blue-500" placeholder="https://script.google.com/macros/s/.../exec">
+            </div>
+            
+            <button type="button" id="save-endpoint-btn" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shadow-md">
+              <i data-lucide="save" class="w-4 h-4"></i> Save Connection URL
+            </button>
+            <button type="button" id="disconnect-endpoint-btn" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 py-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+              <i data-lucide="unlink" class="w-4 h-4"></i> Disconnect Database
+            </button>
+          </div>
+
+          <div class="border-t border-slate-800 pt-6 space-y-3">
+            <h3 class="text-xs font-bold text-slate-300">Manual Cloud Controls</h3>
+            <button type="button" id="manual-pull-btn" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5" disabled>
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Force Download from Sheets
+            </button>
+            <button type="button" id="manual-push-btn" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5" disabled>
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i> Force Upload to Sheets
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 bg-slate-800/40 border border-slate-700/80 rounded-xl p-8 shadow-xl">
+          <div class="flex items-start gap-4 mb-6">
+            <div class="bg-blue-500/10 text-blue-500 p-3 rounded-xl border border-blue-500/20">
+              <i data-lucide="file-code" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold">Google Script Installation Guide</h2>
+              <p class="text-slate-400 text-xs mt-1">Implement the secure REST translator in your target Google Sheet Workbook</p>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">1</div>
+              <div>
+                <h4 class="font-bold text-slate-200">Generate Your Base Spreadsheet</h4>
+                <p class="text-slate-400 text-xs mt-1">Open a blank document in Google Sheets. Create 5 individual sheets/tabs inside, named exactly: <code class="bg-slate-950 px-1.5 py-0.5 rounded text-amber-500 text-[11px] font-mono">Sales</code>, <code class="bg-slate-950 px-1.5 py-0.5 rounded text-amber-500 text-[11px] font-mono">Warranty</code>, <code class="bg-slate-950 px-1.5 py-0.5 rounded text-amber-500 text-[11px] font-mono">Debtors</code>, <code class="bg-slate-950 px-1.5 py-0.5 rounded text-amber-500 text-[11px] font-mono">StockCount</code>, and <code class="bg-slate-950 px-1.5 py-0.5 rounded text-amber-500 text-[11px] font-mono">Overheads</code>.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">2</div>
+              <div>
+                <h4 class="font-bold text-slate-200">Open Apps Script Workspace</h4>
+                <p class="text-slate-400 text-xs mt-1">Go to the navigation menu at the top of your sheet and select <strong>Extensions &gt; Apps Script</strong>.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">3</div>
+              <div class="w-full">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="font-bold text-slate-200">Paste Script Translator</h4>
+                  <button type="button" id="copy-script-btn" class="text-blue-400 hover:text-white text-xs transition flex items-center gap-1">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Script Code
+                  </button>
+                </div>
+                <p class="text-slate-400 text-xs mb-3">Overwrite everything in the editor box with the code below:</p>
+                <pre class="bg-slate-900 border border-slate-700/80 rounded-lg p-4 font-mono text-[10px] text-slate-300 max-h-60 overflow-y-auto" id="sheet-script-code">
+/* COPY THIS CODE TO GOOGLE APPS SCRIPT */
+
+function doGet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const data = {};
+  const sheets = ["Sales", "Warranty", "Debtors", "StockCount", "Overheads"];
+  
+  sheets.forEach(name => {
+    let sheet = ss.getSheetByName(name);
+    if (!sheet) sheet = ss.insertSheet(name);
+    
+    const values = sheet.getDataRange().getValues();
+    if (values.length <= 1) {
+      data[name] = [];
+    } else {
+      const headers = values[0];
+      data[name] = values.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((h, i) => {
+          obj[h] = row[i];
+        });
+        return obj;
+      });
+    }
+  });
+  
+  return ContentService.createTextOutput(JSON.stringify({ status: "success", data }))
+                       .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    for (const sheetName in payload) {
+      let sheet = ss.getSheetByName(sheetName);
+      if (!sheet) sheet = ss.insertSheet(sheetName);
+      
+      sheet.clear();
+      const records = payload[sheetName];
+      if (records.length > 0) {
+        const headers = Object.keys(records[0]);
+        sheet.appendRow(headers);
+        const rows = records.map(rec => headers.map(h => rec[h] !== undefined ? rec[h] : ""));
+        sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+                         .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+                         .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">4</div>
+              <div>
+                <h4 class="font-bold text-slate-200">Deploy as a Web App</h4>
+                <p class="text-slate-400 text-xs mt-1 leading-relaxed">
+                  1. Click <strong>Deploy &gt; New Deployment</strong>.<br>
+                  2. Under Select Type, choose <strong>Web App</strong>.<br>
+                  3. Set Execute As to <strong>"Me (your-email@gmail.com)"</strong>.<br>
+                  4. Set Who Has Access to <strong>"Anyone"</strong> (Required for secure access from this Dashboard).<br>
+                  5. Authorize permissions when prompted by Google, and copy the generated <strong>Web App URL</strong> into the configuration box on the left!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+   </div>
+  </div>
+
+  <script>
+    let sales = [];
+    let warrantyClaims = [];
+    let debtors = [];
+    let stockRecords = [];
+    let overheads = [];
+    
+    let sheetEndpoint = localStorage.getItem('rexstop_sheet_url') || "";
+    let isManualCommission = false;
+
+    let editingSalesBillNo = null;
+    let editingWarrantyIdx = null;
+    let editingDebtorBillNo = null;
+    let editingStockIdx = null;
+    let editingOverheadIdx = null;
+
+    let salesCurrentPage = 1;
+    let warrantyCurrentPage = 1;
+    let debtorCurrentPage = 1;
+    let stockInCurrentPage = 1;
+    let stockOutCurrentPage = 1;
+    let overheadCurrentPage = 1;
+    let commissionCurrentPage = 1;
+
+    const itemsPerPage = 10;
+    let revenueChart = null;
+
+    let deleteTarget = { type: null, id: null };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      generateDynamicYears();
+      safeCreateIcons();
+      initTabs();
+      initFormCalculations();
+      initFormSubmissions();
+      initSearchAndFilters();
+      initEndpointSyncUI();
+      
+      document.getElementById('cancel-delete-btn').addEventListener('click', () => {
+        const modal = document.getElementById('delete-modal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+      });
+
+      document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+        const { type, id } = deleteTarget;
+        
+        if (type === 'sales') {
+          sales = sales.filter(s => s.billNo !== id);
+          showToast(`Transaction deleted.`);
+        } else if (type === 'warranty') {
+          const claimObj = warrantyClaims[id];
+          if (claimObj && claimObj.loss > 0) {
+            const saleIdx = sales.findIndex(s => s.billNo === claimObj.billNo);
+            if (saleIdx !== -1) {
+              sales[saleIdx].loss = Math.max(0, (sales[saleIdx].loss || 0) - claimObj.loss);
+              sales[saleIdx].netProfit = sales[saleIdx].sales - sales[saleIdx].cost - sales[saleIdx].commission - sales[saleIdx].loss;
+            }
+          }
+          warrantyClaims.splice(id, 1);
+          showToast("Warranty claim deleted.");
+        } else if (type === 'debtor') {
+          debtors = debtors.filter(d => d.billNo !== id);
+          showToast("Debtor record deleted.");
+        } else if (type === 'stock') {
+          stockRecords.splice(id, 1);
+          showToast("Stock record deleted.");
+        } else if (type === 'overhead') {
+          overheads.splice(id, 1);
+          showToast("Overhead operational expense entry deleted.");
+        }
+
+        updateAllUI();
+        
+        const modal = document.getElementById('delete-modal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+        
+        autoSyncPush();
+      });
+      
+      if (sheetEndpoint) {
+        showToast("Connecting to Google Sheets Database...", true);
+        document.getElementById('status-text').innerText = "Syncing with Cloud Database...";
+        document.getElementById('status-dot').className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+        syncDataPull();
+      } else {
+        showToast("Please configure your Google Sheets Web App URL.");
+        switchTab('tab-sync');
+      }
+
+      updateAllUI();
+    });
+
+    function generateDynamicYears() {
+      const currentYear = new Date().getFullYear();
+      const startYear = 2024;
+      const futureYears = 15;
+      const endYear = currentYear + futureYears;
+
+      const filters = [
+        'sales-year-smart-filter',
+        'warranty-year-smart-filter',
+        'debtor-year-smart-filter',
+        'stock-year-smart-filter',
+        'commission-year-smart-filter',
+        'overhead-year-smart-filter'
+      ];
+
+      filters.forEach(id => {
+        const select = document.getElementById(id);
+        if(select) {
+          select.innerHTML = '<option value="all">All Years</option>';
+          for(let y = startYear; y <= endYear; y++) {
+            const opt = document.createElement('option');
+            opt.value = y.toString();
+            opt.innerText = y.toString();
+            if(y === currentYear) opt.selected = true;
+            select.appendChild(opt);
+          }
+        }
+      });
+    }
+
+    function safeCreateIcons() {
+      try {
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+          lucide.createIcons();
+        }
+      } catch (err) {
+        console.warn("Lucide icons failed to draw layout.", err);
+      }
+    }
+
+    function smoothScrollToTop() {
+      document.getElementById('main-scroll-container').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openDeleteModal(type, id) {
+      deleteTarget = { type, id };
+      const modal = document.getElementById('delete-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function initTabs() {
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabId = btn.id;
+          switchTab(tabId);
+        });
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('border-blue-500', 'text-blue-400', 'bg-slate-800/40');
+        b.classList.add('border-transparent', 'text-slate-400');
+      });
+
+      document.querySelectorAll('.tab-content').forEach(c => {
+        c.classList.add('hidden');
+        c.classList.remove('block');
+      });
+
+      const activeBtn = document.getElementById(tabId);
+      activeBtn.classList.remove('border-transparent', 'text-slate-400');
+      activeBtn.classList.add('border-blue-500', 'text-blue-400', 'bg-slate-800/40');
+
+      if (tabId === 'tab-dashboard') {
+        document.getElementById('dashboard-tab').classList.remove('hidden');
+        document.getElementById('dashboard-tab').classList.add('block');
+        setTimeout(renderChart, 50); 
+      } else if (tabId === 'tab-entry') {
+        document.getElementById('entry-tab').classList.remove('hidden');
+        document.getElementById('entry-tab').classList.add('block');
+      } else if (tabId === 'tab-warranty') {
+        document.getElementById('warranty-tab-view').classList.remove('hidden');
+        document.getElementById('warranty-tab-view').classList.add('block');
+      } else if (tabId === 'tab-debtor') {
+        document.getElementById('debtor-tab-view').classList.remove('hidden');
+        document.getElementById('debtor-tab-view').classList.add('block');
+      } else if (tabId === 'tab-stock') {
+        document.getElementById('stock-tab-view').classList.remove('hidden');
+        document.getElementById('stock-tab-view').classList.add('block');
+      } else if (tabId === 'tab-commission') {
+        document.getElementById('commission-tab-view').classList.remove('hidden');
+        document.getElementById('commission-tab-view').classList.add('block');
+      } else if (tabId === 'tab-overhead') {
+        document.getElementById('overhead-tab-view').classList.remove('hidden');
+        document.getElementById('overhead-tab-view').classList.add('block');
+      } else if (tabId === 'tab-sync') {
+        document.getElementById('sync-tab-view').classList.remove('hidden');
+        document.getElementById('sync-tab-view').classList.add('block');
+      }
+    }
+
+    function initFormCalculations() {
+      const salesInput = document.getElementById('form-sales');
+      const costInput = document.getElementById('form-cost');
+      const profitInput = document.getElementById('form-profit');
+      const commInput = document.getElementById('form-commission');
+      const lossInput = document.getElementById('form-loss');
+      const netProfitInput = document.getElementById('form-net-profit');
+
+      const recomputeSalesNumbers = (isFromSalesOrCost = false) => {
+        const salesVal = parseFloat(salesInput.value) || 0;
+        const costVal = parseFloat(costInput.value) || 0;
+        const lossVal = parseFloat(lossInput.value) || 0;
+
+        const grossProfit = salesVal - costVal;
+        profitInput.value = grossProfit.toFixed(2);
+
+        if (isFromSalesOrCost && !isManualCommission) {
+          const calculatedComm = Math.max(0, grossProfit * 0.20);
+          commInput.value = calculatedComm.toFixed(2);
+        }
+
+        const commVal = parseFloat(commInput.value) || 0;
+        const netProfit = grossProfit - commVal - lossVal;
+        netProfitInput.value = netProfit.toFixed(2);
+      };
+
+      salesInput.addEventListener('input', () => recomputeSalesNumbers(true));
+      costInput.addEventListener('input', () => recomputeSalesNumbers(true));
+      
+      commInput.addEventListener('input', () => {
+        isManualCommission = true;
+        recomputeSalesNumbers(false);
+      });
+
+      const debtorTotal = document.getElementById('debtor-total');
+      const debtorPaid = document.getElementById('debtor-paid');
+      const debtorBalance = document.getElementById('debtor-balance');
+
+      const recomputeDebtorBalance = () => {
+        const total = parseFloat(debtorTotal.value) || 0;
+        const paid = parseFloat(debtorPaid.value) || 0;
+        debtorBalance.value = (total - paid).toFixed(2);
+      };
+
+      debtorTotal.addEventListener('input', recomputeDebtorBalance);
+      debtorPaid.addEventListener('input', recomputeDebtorBalance);
+
+      const warrantyBillInput = document.getElementById('warranty-billno');
+      warrantyBillInput.addEventListener('input', () => {
+        const targetBill = warrantyBillInput.value.trim().toUpperCase();
+        const existingTrans = sales.find(s => s.billNo.toUpperCase() === targetBill);
+        const statusSpan = document.getElementById('warranty-autofill-status');
+        
+        if (existingTrans) {
+          document.getElementById('warranty-name').value = existingTrans.name;
+          document.getElementById('warranty-phone').value = existingTrans.phone;
+          document.getElementById('warranty-model').value = existingTrans.model;
+          document.getElementById('warranty-item').value = existingTrans.item;
+          document.getElementById('warranty-supplier').value = existingTrans.supplier;
+          statusSpan.innerText = `Matched Transaction: ${existingTrans.name} (${existingTrans.model})`;
+          statusSpan.className = "text-[10px] text-emerald-400 mt-1 block";
+        } else {
+          statusSpan.innerText = "";
+        }
+      });
+
+      const debtorBillInput = document.getElementById('debtor-billno');
+      debtorBillInput.addEventListener('input', () => {
+        const targetBill = debtorBillInput.value.trim().toUpperCase();
+        const existingTrans = sales.find(s => s.billNo.toUpperCase() === targetBill);
+        const statusSpan = document.getElementById('debtor-autofill-status');
+        
+        if (existingTrans) {
+          document.getElementById('debtor-name').value = existingTrans.name;
+          document.getElementById('debtor-phone').value = existingTrans.phone;
+          document.getElementById('debtor-total').value = existingTrans.sales;
+          document.getElementById('debtor-paid').value = "0";
+          debtorBalance.value = existingTrans.sales.toFixed(2);
+          statusSpan.innerText = `Matched Transaction: ${existingTrans.name} (${existingTrans.model}) - RM${existingTrans.sales}`;
+          statusSpan.className = "text-[10px] text-emerald-400 mt-1 block";
+        } else {
+          statusSpan.innerText = "";
+        }
+      });
+    }
+
+    function initFormSubmissions() {
+      // 1. Add Sales Form
+      document.getElementById('sales-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const billNo = document.getElementById('form-billno').value.trim().toUpperCase();
+        const date = document.getElementById('form-date').value;
+        const name = document.getElementById('form-name').value.trim();
+        const phone = document.getElementById('form-phone').value.trim();
+        const model = document.getElementById('form-model').value.trim();
+        const item = document.getElementById('form-item').value.trim();
+        const PIC = document.getElementById('form-pic').value.trim();
+        const supplier = document.getElementById('form-supplier').value.trim();
+        
+        const salesAmt = parseFloat(document.getElementById('form-sales').value) || 0;
+        const costAmt = parseFloat(document.getElementById('form-cost').value) || 0;
+        const lossAmt = parseFloat(document.getElementById('form-loss').value) || 0;
+        const commAmt = parseFloat(document.getElementById('form-commission').value) || 0;
+        const netProfit = parseFloat(document.getElementById('form-net-profit').value) || 0;
+        const note = document.getElementById('form-note').value.trim();
+
+        const newRecord = { billNo, date, name, phone, model, item, PIC, supplier, sales: salesAmt, cost: costAmt, loss: lossAmt, commission: commAmt, netProfit, note };
+
+        if (editingSalesBillNo) {
+          const editIdx = sales.findIndex(s => s.billNo === editingSalesBillNo);
+          if (editIdx !== -1) {
+            sales[editIdx] = newRecord;
+            showToast(`Transaction ${billNo} updated in memory!`);
+          } else {
+            sales.unshift(newRecord);
+          }
+        } else {
+          const dupIdx = sales.findIndex(s => s.billNo === billNo);
+          if (dupIdx !== -1) {
+            sales[dupIdx] = newRecord;
+            showToast(`Transaction ${billNo} updated in memory!`);
+          } else {
+            sales.unshift(newRecord);
+            showToast(`Sale entry ${billNo} added in memory!`);
+          }
+        }
+
+        updateAllUI();
+        document.getElementById('sales-form').reset();
+        isManualCommission = false; 
+        editingSalesBillNo = null; 
+        document.getElementById('sales-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Save Sale Record`;
+        safeCreateIcons();
+        switchTab('tab-dashboard');
+        smoothScrollToTop();
+        
+        autoSyncPush();
+      });
+
+      document.getElementById('reset-form-btn').addEventListener('click', () => {
+        document.getElementById('sales-form').reset();
+        isManualCommission = false; 
+        editingSalesBillNo = null;
+        document.getElementById('sales-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Save Sale Record`;
+        safeCreateIcons();
+      });
+
+      // 2. Warranty Form
+      document.getElementById('warranty-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const billNo = document.getElementById('warranty-billno').value.trim().toUpperCase();
+        const date = document.getElementById('warranty-date').value;
+        const name = document.getElementById('warranty-name').value.trim();
+        const phone = document.getElementById('warranty-phone').value.trim();
+        const model = document.getElementById('warranty-model').value.trim();
+        const item = document.getElementById('warranty-item').value.trim();
+        const supplier = document.getElementById('warranty-supplier').value.trim();
+        const status = document.getElementById('warranty-status').value;
+        const cost = parseFloat(document.getElementById('warranty-cost').value) || 0;
+        const loss = parseFloat(document.getElementById('warranty-loss').value) || 0;
+        const notes = document.getElementById('warranty-notes').value.trim();
+
+        const claimObj = { date, billNo, name, phone, model, item, supplier, status, cost, loss, notes };
+
+        if (editingWarrantyIdx !== null) {
+          const oldClaim = warrantyClaims[editingWarrantyIdx];
+          if (oldClaim && oldClaim.loss > 0) {
+            const oldSaleIdx = sales.findIndex(s => s.billNo === oldClaim.billNo);
+            if (oldSaleIdx !== -1) {
+              sales[oldSaleIdx].loss = Math.max(0, (sales[oldSaleIdx].loss || 0) - oldClaim.loss);
+              sales[oldSaleIdx].netProfit = sales[oldSaleIdx].sales - sales[oldSaleIdx].cost - sales[oldSaleIdx].commission - sales[oldSaleIdx].loss;
+            }
+          }
+          warrantyClaims[editingWarrantyIdx] = claimObj;
+          showToast("Warranty claim updated.");
+        } else {
+          warrantyClaims.unshift(claimObj);
+          showToast("Warranty claim recorded.");
+        }
+
+        if (loss > 0) {
+          const saleIdx = sales.findIndex(s => s.billNo === billNo);
+          if (saleIdx !== -1) {
+            sales[saleIdx].loss = (parseFloat(sales[saleIdx].loss) || 0) + loss;
+            sales[saleIdx].netProfit = sales[saleIdx].sales - sales[saleIdx].cost - sales[saleIdx].commission - sales[saleIdx].loss;
+          }
+        }
+
+        updateAllUI();
+        document.getElementById('warranty-form').reset();
+        document.getElementById('warranty-autofill-status').innerText = "";
+        editingWarrantyIdx = null;
+        document.getElementById('warranty-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Record Warranty Claim`;
+        safeCreateIcons();
+        switchTab('tab-dashboard');
+        smoothScrollToTop();
+
+        autoSyncPush();
+      });
+
+      document.getElementById('reset-warranty-form').addEventListener('click', () => {
+        document.getElementById('warranty-form').reset();
+        document.getElementById('warranty-autofill-status').innerText = "";
+        editingWarrantyIdx = null;
+        document.getElementById('warranty-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Record Warranty Claim`;
+        safeCreateIcons();
+      });
+
+      // 3. Debtor Form
+      document.getElementById('debtor-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const billNo = document.getElementById('debtor-billno').value.trim().toUpperCase();
+        const name = document.getElementById('debtor-name').value.trim();
+        const phone = document.getElementById('debtor-phone').value.trim();
+        const total = parseFloat(document.getElementById('debtor-total').value) || 0;
+        const paid = parseFloat(document.getElementById('debtor-paid').value) || 0;
+        const balance = parseFloat(document.getElementById('debtor-balance').value) || 0;
+        const repairDate = document.getElementById('debtor-repair-date').value;
+        const followupDate = document.getElementById('debtor-followup-date').value;
+        const notes = document.getElementById('debtor-notes').value.trim();
+        const status = document.getElementById('debtor-status').value;
+
+        const debtorObj = { billNo, name, phone, total, paid, balance, repairDate, followupDate, notes, status };
+        
+        if (editingDebtorBillNo) {
+          const editIdx = debtors.findIndex(d => d.billNo === editingDebtorBillNo);
+          if (editIdx !== -1) {
+            debtors[editIdx] = debtorObj;
+            showToast(`Updated debtor account details.`);
+          } else {
+            debtors.unshift(debtorObj);
+          }
+        } else {
+          const existingIdx = debtors.findIndex(d => d.billNo === billNo);
+          if (existingIdx !== -1) {
+            debtors[existingIdx] = debtorObj;
+            showToast(`Updated debtor account.`);
+          } else {
+            debtors.unshift(debtorObj);
+            showToast("New debtor logged successfully.");
+          }
+        }
+
+        updateAllUI();
+        document.getElementById('debtor-form').reset();
+        document.getElementById('debtor-autofill-status').innerText = "";
+        editingDebtorBillNo = null;
+        document.getElementById('debtor-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Save Debtor Profile`;
+        safeCreateIcons();
+        smoothScrollToTop();
+        
+        autoSyncPush();
+      });
+
+      document.getElementById('reset-debtor-form').addEventListener('click', () => {
+        document.getElementById('debtor-form').reset();
+        document.getElementById('debtor-autofill-status').innerText = "";
+        editingDebtorBillNo = null;
+        document.getElementById('debtor-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Save Debtor Profile`;
+        safeCreateIcons();
+      });
+
+      // 4. Stock Count Form
+      document.getElementById('stock-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const type = document.getElementById('stock-type').value;
+        const date = document.getElementById('stock-date').value;
+        const item = document.getElementById('stock-item-name').value.trim();
+        const supplier = document.getElementById('stock-supplier').value.trim();
+        const qty = parseInt(document.getElementById('stock-qty').value) || 0;
+        const cost = parseFloat(document.getElementById('stock-unit-cost').value) || 0;
+        const reason = document.getElementById('stock-reason').value.trim();
+        const PIC = document.getElementById('stock-pic').value.trim();
+        const notes = document.getElementById('stock-notes').value.trim();
+
+        const totalCost = qty * cost;
+        const stockObj = { type, date, item, supplier, qty, cost, total: totalCost, reason, PIC, notes };
+
+        if (editingStockIdx !== null) {
+          stockRecords[editingStockIdx] = stockObj;
+          showToast("Stock record updated.");
+        } else {
+          stockRecords.unshift(stockObj);
+          showToast("Stock record logged successfully.");
+        }
+
+        updateAllUI();
+        document.getElementById('stock-form').reset();
+        editingStockIdx = null;
+        document.getElementById('stock-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Log Inventory Record`;
+        safeCreateIcons();
+        smoothScrollToTop();
+
+        autoSyncPush();
+      });
+
+      document.getElementById('reset-stock-form').addEventListener('click', () => {
+        document.getElementById('stock-form').reset();
+        editingStockIdx = null;
+        document.getElementById('stock-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Log Inventory Record`;
+        safeCreateIcons();
+      });
+
+      // 5. Overhead Form
+      document.getElementById('overhead-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const date = document.getElementById('overhead-date').value;
+        const category = document.getElementById('overhead-category').value;
+        const desc = document.getElementById('overhead-desc').value.trim();
+        const amount = parseFloat(document.getElementById('overhead-amount').value) || 0;
+        const notes = document.getElementById('overhead-notes').value.trim();
+
+        const expenseObj = { date, category, desc, amount, notes };
+
+        if (editingOverheadIdx !== null) {
+          overheads[editingOverheadIdx] = expenseObj;
+          showToast("Overhead expense successfully updated.");
+        } else {
+          overheads.unshift(expenseObj);
+          showToast("Operating overhead expense successfully logged.");
+        }
+
+        updateAllUI();
+        document.getElementById('overhead-form').reset();
+        editingOverheadIdx = null;
+        document.getElementById('overhead-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Record Expense`;
+        safeCreateIcons();
+        smoothScrollToTop();
+
+        autoSyncPush();
+      });
+
+      document.getElementById('reset-overhead-form').addEventListener('click', () => {
+        document.getElementById('overhead-form').reset();
+        editingOverheadIdx = null;
+        document.getElementById('overhead-submit-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Record Expense`;
+        safeCreateIcons();
+      });
+    }
+
+    function initSearchAndFilters() {
+      document.getElementById('sales-month-smart-filter').addEventListener('change', () => { salesCurrentPage = 1; updateSalesTable(); });
+      document.getElementById('warranty-month-smart-filter').addEventListener('change', () => { warrantyCurrentPage = 1; updateWarrantyTable(); });
+      document.getElementById('debtor-month-smart-filter').addEventListener('change', () => { debtorCurrentPage = 1; updateDebtorTable(); });
+      document.getElementById('stock-month-smart-filter').addEventListener('change', () => { stockInCurrentPage = 1; stockOutCurrentPage = 1; updateStockOutTable(); });
+      document.getElementById('overhead-month-smart-filter').addEventListener('change', () => { overheadCurrentPage = 1; updateOverheadTable(); });
+      document.getElementById('commission-month-smart-filter').addEventListener('change', () => { commissionCurrentPage = 1; updateCommissionTable(); });
+
+      document.getElementById('sales-year-smart-filter').addEventListener('change', () => { salesCurrentPage = 1; updateSalesTable(); });
+      document.getElementById('warranty-year-smart-filter').addEventListener('change', () => { warrantyCurrentPage = 1; updateWarrantyTable(); });
+      document.getElementById('debtor-year-smart-filter').addEventListener('change', () => { debtorCurrentPage = 1; updateDebtorTable(); });
+      document.getElementById('stock-year-smart-filter').addEventListener('change', () => { stockInCurrentPage = 1; stockOutCurrentPage = 1; updateStockOutTable(); });
+      document.getElementById('overhead-year-smart-filter').addEventListener('change', () => { overheadCurrentPage = 1; updateOverheadTable(); });
+      document.getElementById('commission-year-smart-filter').addEventListener('change', () => { commissionCurrentPage = 1; updateCommissionTable(); });
+
+      const searchInput = document.getElementById('sales-search');
+      searchInput.addEventListener('input', () => { salesCurrentPage = 1; updateSalesTable(); });
+
+      const rangeSelect = document.getElementById('quick-view');
+      rangeSelect.addEventListener('change', () => {
+        const val = rangeSelect.value;
+        const now = new Date();
+        const startInput = document.getElementById('filter-start-date');
+        const endInput = document.getElementById('filter-end-date');
+
+        if (val === 'month') {
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+          startInput.value = startOfMonth;
+          endInput.value = endOfMonth;
+        } else if (val === 'year') {
+          startInput.value = `${now.getFullYear()}-01-01`;
+          endInput.value = `${now.getFullYear()}-12-31`;
+        } else {
+          startInput.value = "";
+          endInput.value = "";
+        }
+      });
+
+      document.getElementById('sales-filter-btn').addEventListener('click', () => {
+        document.getElementById('sales-filter-panel').classList.toggle('hidden');
+      });
+
+      document.getElementById('sales-clear-filter-btn').addEventListener('click', () => {
+        document.getElementById('sales-search').value = "";
+        document.getElementById('filter-bill').value = "";
+        document.getElementById('filter-customer').value = "";
+        document.getElementById('filter-tech').value = "";
+        document.getElementById('filter-sales-date').value = "";
+        document.getElementById('sales-month-smart-filter').value = "all";
+        document.getElementById('sales-year-smart-filter').value = new Date().getFullYear().toString();
+        salesCurrentPage = 1;
+        updateSalesTable();
+      });
+
+      document.getElementById('apply-sales-filter').addEventListener('click', () => { salesCurrentPage = 1; updateSalesTable(); });
+
+      document.getElementById('reset-sales-filter').addEventListener('click', () => {
+        document.getElementById('filter-bill').value = "";
+        document.getElementById('filter-customer').value = "";
+        document.getElementById('filter-tech').value = "";
+        document.getElementById('filter-sales-date').value = "";
+        salesCurrentPage = 1; updateSalesTable();
+      });
+
+      document.getElementById('apply-filter').addEventListener('click', () => {
+        updateAllUI();
+        showToast("Dashboard analytics filters updated!");
+      });
+
+      document.getElementById('clear-dashboard-filter').addEventListener('click', () => {
+        document.getElementById('filter-start-date').value = "";
+        document.getElementById('filter-end-date').value = "";
+        document.getElementById('quick-view').value = "all";
+        updateAllUI();
+        showToast("Timeline filters reset to all time.");
+      });
+
+      // Pagination Listeners
+      document.getElementById('sales-prev-btn').addEventListener('click', () => { if (salesCurrentPage > 1) { salesCurrentPage--; updateSalesTable(); } });
+      document.getElementById('sales-next-btn').addEventListener('click', () => { salesCurrentPage++; updateSalesTable(); });
+
+      document.getElementById('warranty-prev-btn').addEventListener('click', () => { if (warrantyCurrentPage > 1) { warrantyCurrentPage--; updateWarrantyTable(); } });
+      document.getElementById('warranty-next-btn').addEventListener('click', () => { warrantyCurrentPage++; updateWarrantyTable(); });
+
+      document.getElementById('debtor-prev-btn').addEventListener('click', () => { if (debtorCurrentPage > 1) { debtorCurrentPage--; updateDebtorTable(); } });
+      document.getElementById('debtor-next-btn').addEventListener('click', () => { debtorCurrentPage++; updateDebtorTable(); });
+
+      document.getElementById('stock-in-prev-btn').addEventListener('click', () => { if (stockInCurrentPage > 1) { stockInCurrentPage--; updateStockOutTable(); } });
+      document.getElementById('stock-in-next-btn').addEventListener('click', () => { stockInCurrentPage++; updateStockOutTable(); });
+      
+      document.getElementById('stock-out-prev-btn').addEventListener('click', () => { if (stockOutCurrentPage > 1) { stockOutCurrentPage--; updateStockOutTable(); } });
+      document.getElementById('stock-out-next-btn').addEventListener('click', () => { stockOutCurrentPage++; updateStockOutTable(); });
+
+      document.getElementById('overhead-prev-btn').addEventListener('click', () => { if (overheadCurrentPage > 1) { overheadCurrentPage--; updateOverheadTable(); } });
+      document.getElementById('overhead-next-btn').addEventListener('click', () => { overheadCurrentPage++; updateOverheadTable(); });
+
+      document.getElementById('commission-prev-btn').addEventListener('click', () => { if (commissionCurrentPage > 1) { commissionCurrentPage--; updateCommissionTable(); } });
+      document.getElementById('commission-next-btn').addEventListener('click', () => { commissionCurrentPage++; updateCommissionTable(); });
+
+      document.getElementById('warranty-status-filter').addEventListener('change', () => { warrantyCurrentPage = 1; updateWarrantyTable(); });
+      document.getElementById('debtor-search').addEventListener('input', () => { debtorCurrentPage = 1; updateDebtorTable(); });
+    }
+
+    function updateAllUI() {
+      updateDashboardData();
+      updateSalesTable();
+      updateWarrantyTable();
+      updateDebtorTable();
+      updateStockOutTable();
+      updateCommissionTable();
+      updateOverheadTable();
+      renderChart();
+    }
+
+    function updateDashboardData() {
+      const startDate = document.getElementById('filter-start-date').value;
+      const endDate = document.getElementById('filter-end-date').value;
+
+      const filterByDate = (itemDateStr) => {
+        if (!startDate && !endDate) return true;
+        const d = new Date(itemDateStr);
+        if (startDate) { const sd = new Date(startDate); if (d < sd) return false; }
+        if (endDate) { const ed = new Date(endDate); if (d > ed) return false; }
+        return true;
+      };
+
+      let totalSales = 0, totalCostOfParts = 0, totalLossAssign = 0, totalNetProfitSalesPart = 0;
+
+      sales.forEach(s => {
+        if (filterByDate(s.date)) {
+          totalSales += parseFloat(s.sales) || 0;
+          totalCostOfParts += parseFloat(s.cost) || 0;
+          totalLossAssign += parseFloat(s.loss) || 0;
+          totalNetProfitSalesPart += parseFloat(s.netProfit) || 0;
+        }
+      });
+
+      let outstandingDebt = 0;
+      debtors.forEach(d => {
+        if (filterByDate(d.repairDate)) {
+          if (d.status === 'pending') outstandingDebt += parseFloat(d.balance) || 0;
+        }
+      });
+
+      let stockOutCost = 0;
+      stockRecords.forEach(st => {
+        // Only count OUTFLOWS as expenses/costs on the dashboard
+        if (st.type === 'OUT' && filterByDate(st.date)) stockOutCost += parseFloat(st.total) || 0;
+      });
+
+      let totalOverheadCost = 0;
+      overheads.forEach(o => {
+        if (filterByDate(o.date)) totalOverheadCost += parseFloat(o.amount) || 0;
+      });
+
+      const finalCosts = totalCostOfParts + stockOutCost;
+      const finalNetProfit = totalNetProfitSalesPart - stockOutCost - totalOverheadCost;
+      const absoluteMargin = totalSales > 0 ? (finalNetProfit / totalSales) * 100 : 0;
+
+      document.getElementById('kpi-sales').innerText = `RM ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-costs').innerText = `RM ${finalCosts.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-overheads').innerText = `RM ${totalOverheadCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-loss').innerText = `RM ${totalLossAssign.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-net-profit').innerText = `RM ${finalNetProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-debt').innerText = `RM ${outstandingDebt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-margin').innerText = `${absoluteMargin.toFixed(1)}%`;
+    }
+
+    function matchesSmartDateFilter(itemDateStr, monthVal, yearVal) {
+      if (!itemDateStr) return true;
+      const dateParts = itemDateStr.split('-');
+      if (dateParts.length >= 3) {
+        const itemYear = dateParts[0];
+        const itemMonth = dateParts[1];
+        
+        const monthMatch = (monthVal === 'all' || itemMonth === monthVal);
+        const yearMatch = (yearVal === 'all' || itemYear === yearVal);
+        
+        return monthMatch && yearMatch;
+      }
+      return true;
+    }
+
+    function updateSalesTable() {
+      const tbody = document.getElementById('sales-table-body');
+      tbody.innerHTML = '';
+
+      const searchQuery = document.getElementById('sales-search').value.toLowerCase().trim();
+      const filterBill = document.getElementById('filter-bill').value.toLowerCase().trim();
+      const filterCustomer = document.getElementById('filter-customer').value.toLowerCase().trim();
+      const filterTech = document.getElementById('filter-tech').value.toLowerCase().trim();
+      const filterDate = document.getElementById('filter-sales-date').value;
+      const monthSmartFilter = document.getElementById('sales-month-smart-filter').value;
+      const yearSmartFilter = document.getElementById('sales-year-smart-filter').value;
+
+      let filteredSales = sales.filter(item => {
+        if (!matchesSmartDateFilter(item.date, monthSmartFilter, yearSmartFilter)) return false;
+        if (searchQuery) {
+          const matchGeneral = item.billNo.toLowerCase().includes(searchQuery) || 
+                               item.name.toLowerCase().includes(searchQuery) || 
+                               item.PIC.toLowerCase().includes(searchQuery) ||
+                               item.model.toLowerCase().includes(searchQuery);
+          if (!matchGeneral) return false;
+        }
+        if (filterBill && !item.billNo.toLowerCase().includes(filterBill)) return false;
+        if (filterCustomer && !item.name.toLowerCase().includes(filterCustomer)) return false;
+        if (filterTech && !item.PIC.toLowerCase().includes(filterTech)) return false;
+        if (filterDate && item.date !== filterDate) return false;
+
+        return true;
+      });
+
+      const totalItems = filteredSales.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+      
+      if (salesCurrentPage > totalPages) salesCurrentPage = totalPages;
+      if (salesCurrentPage < 1) salesCurrentPage = 1;
+
+      const startIndex = (salesCurrentPage - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+      const paginatedData = filteredSales.slice(startIndex, endIndex);
+
+      document.getElementById('sales-records-info').innerText = `Showing ${totalItems > 0 ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} records`;
+      document.getElementById('sales-prev-btn').disabled = salesCurrentPage === 1;
+      document.getElementById('sales-next-btn').disabled = salesCurrentPage === totalPages;
+
+      if (paginatedData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" class="px-4 py-8 text-center text-slate-500">No records found.</td></tr>`;
+        return;
+      }
+
+      paginatedData.forEach(item => {
+        const safeBillNo = item.billNo.replace(/'/g, "\\'");
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 text-left transition duration-150 border-b border-slate-800/50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-mono font-bold text-blue-400 text-xs">${item.billNo}</td>
+          <td class="px-4 py-3 text-xs whitespace-nowrap">${item.date}</td>
+          <td class="px-4 py-3 text-slate-200 font-medium">${item.name || '-'}</td>
+          <td class="px-4 py-3 text-xs text-slate-300">${item.PIC || '-'}</td>
+          <td class="px-4 py-3 text-xs">${item.model}</td>
+          <td class="px-4 py-3 text-xs text-slate-300 max-w-[150px] truncate" title="${item.item}">${item.item}</td>
+          <td class="px-4 py-3 text-right font-semibold text-slate-100">${(item.sales || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-rose-400">${(item.cost || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-red-500 font-bold">${(item.loss || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-amber-500">${(item.commission || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-right font-bold text-emerald-400">${(item.netProfit || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button type="button" onclick="editSalesRecord('${safeBillNo}')" class="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 px-2 py-1 rounded text-xs transition flex items-center gap-1">
+                <i data-lucide="edit-2" class="w-3 h-3"></i> Edit
+              </button>
+              <button type="button" onclick="openDeleteModal('sales', '${safeBillNo}')" class="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-500 px-2 py-1 rounded text-xs transition flex items-center gap-1">
+                <i data-lucide="trash" class="w-3 h-3"></i> Del
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      safeCreateIcons();
+    }
+
+    function updateWarrantyTable() {
+      const tbody = document.getElementById('warranty-table-body');
+      tbody.innerHTML = '';
+
+      const statusFilter = document.getElementById('warranty-status-filter').value;
+      const monthSmartFilter = document.getElementById('warranty-month-smart-filter').value;
+      const yearSmartFilter = document.getElementById('warranty-year-smart-filter').value;
+      
+      let filteredWarranty = warrantyClaims.filter(w => {
+        if (statusFilter !== 'all' && w.status !== statusFilter) return false;
+        if (!matchesSmartDateFilter(w.date, monthSmartFilter, yearSmartFilter)) return false;
+        return true;
+      });
+
+      const totalItems = filteredWarranty.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+      
+      if (warrantyCurrentPage > totalPages) warrantyCurrentPage = totalPages;
+      if (warrantyCurrentPage < 1) warrantyCurrentPage = 1;
+
+      const startIndex = (warrantyCurrentPage - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+      const paginatedData = filteredWarranty.slice(startIndex, endIndex);
+
+      document.getElementById('warranty-records-info').innerText = `Showing ${totalItems > 0 ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} records`;
+      document.getElementById('warranty-prev-btn').disabled = warrantyCurrentPage === 1;
+      document.getElementById('warranty-next-btn').disabled = warrantyCurrentPage === totalPages;
+
+      if (paginatedData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">No matching warranty claims found.</td></tr>`;
+        return;
+      }
+
+      paginatedData.forEach((item) => {
+        const originalIndex = warrantyClaims.indexOf(item);
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 text-left transition duration-150 border-b border-slate-800/50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-xs">${item.date}</td>
+          <td class="px-4 py-3 font-mono text-blue-400 text-xs font-bold">${item.billNo}</td>
+          <td class="px-4 py-3 font-medium">${item.name}</td>
+          <td class="px-4 py-3 text-xs text-slate-300">
+            <div class="font-bold">${item.model}</div>
+            <div class="text-[10px] text-slate-400">${item.item}</div>
+          </td>
+          <td class="px-4 py-3 text-right text-slate-100 font-semibold">${(item.cost || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-red-500 font-bold">${(item.loss || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-center">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${item.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}">
+              ${item.status === 'completed' ? 'Resolved' : 'Pending'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button type="button" onclick="editWarrantyRecord(${originalIndex})" class="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 px-2 py-1 rounded text-xs transition flex items-center gap-1">
+                Edit
+              </button>
+              <button type="button" onclick="toggleWarrantyStatus(${originalIndex})" class="bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 text-amber-500 px-2 py-1 rounded text-xs transition flex items-center gap-1">
+                Status
+              </button>
+              <button type="button" onclick="openDeleteModal('warranty', ${originalIndex})" class="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-500 px-2 py-1 rounded text-xs transition flex items-center gap-1">
+                Del
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      safeCreateIcons();
+    }
+
+    function updateDebtorTable() {
+      const tbody = document.getElementById('debtor-table-body');
+      tbody.innerHTML = '';
+
+      const searchVal = document.getElementById('debtor-search').value.toLowerCase().trim();
+      const monthSmartFilter = document.getElementById('debtor-month-smart-filter').value;
+      const yearSmartFilter = document.getElementById('debtor-year-smart-filter').value;
+      
+      let filteredDebtors = debtors.filter(d => {
+        if (!matchesSmartDateFilter(d.repairDate, monthSmartFilter, yearSmartFilter)) return false;
+        if (searchVal && !d.name.toLowerCase().includes(searchVal) && !d.billNo.toLowerCase().includes(searchVal)) return false;
+        return true;
+      });
+
+      const totalItems = filteredDebtors.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+      if (debtorCurrentPage > totalPages) debtorCurrentPage = totalPages;
+      if (debtorCurrentPage < 1) debtorCurrentPage = 1;
+
+      const startIndex = (debtorCurrentPage - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+      const paginatedData = filteredDebtors.slice(startIndex, endIndex);
+
+      document.getElementById('debtor-records-info').innerText = `Showing ${totalItems > 0 ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} records`;
+      document.getElementById('debtor-prev-btn').disabled = debtorCurrentPage === 1;
+      document.getElementById('debtor-next-btn').disabled = debtorCurrentPage === totalPages;
+
+      if (paginatedData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-8 text-center text-slate-500">No matching debtor profiles found.</td></tr>`;
+        return;
+      }
+
+      paginatedData.forEach((item) => {
+        const safeBillNo = item.billNo.replace(/'/g, "\\'");
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 text-left transition duration-150 border-b border-slate-800/50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-mono text-blue-400 text-xs font-bold">${item.billNo}</td>
+          <td class="px-4 py-3 font-semibold">${item.name}</td>
+          <td class="px-4 py-3 text-xs text-slate-300">${item.phone}</td>
+          <td class="px-4 py-3 text-right text-slate-100">${(item.total || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-emerald-400">${(item.paid || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-rose-400 font-bold">${(item.balance || 0).toFixed(2)}</td>
+          <td class="px-4 py-3 text-xs">${item.repairDate}</td>
+          <td class="px-4 py-3 text-xs text-slate-400 font-medium">${item.followupDate || '-'}</td>
+          <td class="px-4 py-3 text-center">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${item.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-rose-400'}">
+              ${item.status === 'completed' ? 'Settled' : 'Unpaid'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-xs text-slate-300 max-w-[120px] truncate" title="${item.notes || '-'}">${item.notes || '-'}</td>
+          <td class="px-4 py-3 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button type="button" onclick="editDebtorRecord('${safeBillNo}')" class="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 px-2 py-1 rounded text-xs transition">
+                Edit
+              </button>
+              <button type="button" onclick="quickPayDebtor('${safeBillNo}')" class="bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded text-xs font-bold transition">
+                Pay
+              </button>
+              <button type="button" onclick="openDeleteModal('debtor', '${safeBillNo}')" class="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-500 px-2 py-1 rounded text-xs transition">
+                Del
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      safeCreateIcons();
+    }
+
+    function updateStockOutTable() {
+      const inTbody = document.getElementById('stock-in-table-body');
+      const outTbody = document.getElementById('stock-out-table-body');
+      inTbody.innerHTML = '';
+      outTbody.innerHTML = '';
+
+      const monthSmartFilter = document.getElementById('stock-month-smart-filter').value;
+      const yearSmartFilter = document.getElementById('stock-year-smart-filter').value;
+      
+      const filteredStock = stockRecords.filter(st => matchesSmartDateFilter(st.date, monthSmartFilter, yearSmartFilter));
+
+      // Separate into IN and OUT records while preserving their original index for Edit/Delete functions
+      const inRecords = [];
+      const outRecords = [];
+      
+      filteredStock.forEach(st => {
+        const origIdx = stockRecords.indexOf(st);
+        if(st.type === 'IN') inRecords.push({ ...st, origIdx });
+        else outRecords.push({ ...st, origIdx });
+      });
+
+      // Render IN Table
+      const inTotalPages = Math.ceil(inRecords.length / itemsPerPage) || 1;
+      if (stockInCurrentPage > inTotalPages) stockInCurrentPage = inTotalPages;
+      if (stockInCurrentPage < 1) stockInCurrentPage = 1;
+      const inStart = (stockInCurrentPage - 1) * itemsPerPage;
+      const inPaginated = inRecords.slice(inStart, inStart + itemsPerPage);
+
+      document.getElementById('stock-in-records-info').innerText = `Showing ${inRecords.length > 0 ? inStart + 1 : 0} to ${Math.min(inStart + itemsPerPage, inRecords.length)} of ${inRecords.length} records`;
+      document.getElementById('stock-in-prev-btn').disabled = stockInCurrentPage === 1;
+      document.getElementById('stock-in-next-btn').disabled = stockInCurrentPage === inTotalPages;
+
+      if (inPaginated.length === 0) {
+        inTbody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No stock inflows recorded.</td></tr>`;
+      } else {
+        inPaginated.forEach((item) => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-800/40 text-left transition duration-150 border-b border-slate-800/50";
+          tr.innerHTML = `
+            <td class="px-4 py-3 text-xs">${item.date}</td>
+            <td class="px-4 py-3 font-semibold text-slate-200">${item.item}</td>
+            <td class="px-4 py-3 text-xs text-slate-300">${item.supplier || '-'}</td>
+            <td class="px-4 py-3 text-xs"><span class="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded text-slate-300 font-medium">${item.reason}</span></td>
+            <td class="px-4 py-3 text-center font-bold text-emerald-400">+${item.qty}</td>
+            <td class="px-4 py-3 text-right text-slate-300">${(item.cost || 0).toFixed(2)}</td>
+            <td class="px-4 py-3 text-right text-emerald-400 font-bold">${(item.total || 0).toFixed(2)}</td>
+            <td class="px-4 py-3 text-xs">${item.PIC}</td>
+            <td class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button type="button" onclick="editStockRecord(${item.origIdx})" class="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 px-2 py-1 rounded text-xs transition">Edit</button>
+                <button type="button" onclick="openDeleteModal('stock', ${item.origIdx})" class="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-500 px-2 py-1 rounded text-xs transition">Del</button>
+              </div>
+            </td>
+          `;
+          inTbody.appendChild(tr);
+        });
+      }
+
+      // Render OUT Table
+      const outTotalPages = Math.ceil(outRecords.length / itemsPerPage) || 1;
+      if (stockOutCurrentPage > outTotalPages) stockOutCurrentPage = outTotalPages;
+      if (stockOutCurrentPage < 1) stockOutCurrentPage = 1;
+      const outStart = (stockOutCurrentPage - 1) * itemsPerPage;
+      const outPaginated = outRecords.slice(outStart, outStart + itemsPerPage);
+
+      document.getElementById('stock-out-records-info').innerText = `Showing ${outRecords.length > 0 ? outStart + 1 : 0} to ${Math.min(outStart + itemsPerPage, outRecords.length)} of ${outRecords.length} records`;
+      document.getElementById('stock-out-prev-btn').disabled = stockOutCurrentPage === 1;
+      document.getElementById('stock-out-next-btn').disabled = stockOutCurrentPage === outTotalPages;
+
+      if (outPaginated.length === 0) {
+        outTbody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No stock outflows recorded.</td></tr>`;
+      } else {
+        outPaginated.forEach((item) => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-800/40 text-left transition duration-150 border-b border-slate-800/50";
+          tr.innerHTML = `
+            <td class="px-4 py-3 text-xs">${item.date}</td>
+            <td class="px-4 py-3 font-semibold text-slate-200">${item.item}</td>
+            <td class="px-4 py-3 text-xs text-slate-300">${item.supplier || '-'}</td>
+            <td class="px-4 py-3 text-xs"><span class="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded text-slate-300 font-medium">${item.reason}</span></td>
+            <td class="px-4 py-3 text-center font-bold text-rose-400">-${item.qty}</td>
+            <td class="px-4 py-3 text-right text-slate-300">${(item.cost || 0).toFixed(2)}</td>
+            <td class="px-4 py-3 text-right text-rose-400 font-bold">${(item.total || 0).toFixed(2)}</td>
+            <td class="px-4 py-3 text-xs">${item.PIC}</td>
+            <td class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button type="button" onclick="editStockRecord(${item.origIdx})" class="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 px-2 py-1 rounded text-xs transition">Edit</button>
+                <button type="button" onclick="openDeleteModal('stock', ${item.origIdx})" class="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-500 px-2 py-1 rounded text-xs transition">Del</button>
+              </div>
+            </td>
+          `;
+          outTbody.appendChild(tr);
+        });
+      }
+      
+      safeCreateIcons();
+    }
+
+    function updateOverheadTable() {
+      const tbody = document.getElementById('overhead-table-body');
+      tbody.innerHTML = '';
+
+      const monthSmartFilter = document.getElementById('overhead-month-smart-filter').value;
+      const yearSmartFilter = document.getElementById('overhead-year-smart-filter').value;
+      
+      const filteredOverheads = overheads.filter(o => matchesSmartDateFilter(o.date, monthSmartFilter, yearSmartFilter));
+
+      const totalItems = filteredOverheads.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+      if (overheadCurrentPage > totalPages) overheadCurrentPage = totalPages;
+      if (overheadCurrentPage < 1) overheadCurrentPage = 1;
+
+      const startIndex = (overheadCurrentPage - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+      const paginatedData = filteredOverheads.slice(startIndex, endIndex);
+
+      document.getElementById('overhead-records-info').innerText = `Showing ${totalItems > 0 ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} records`;
+      document.getElementById('overhead-prev-btn').disabled = overheadCurrentPage === 1;
+      document.getElementById('overhead-next-btn').disabled = overheadCurrentPage === totalPages;
+
+      if (paginatedData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No overhead entries logged.</td></tr>`;
+        return;
+      }
+
+      paginatedData.forEach((item) => {
+        const originalIndex = overheads.indexOf(item);
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 text-left transition duration-150 border-b border-slate-800/50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-xs">${item.date}</td>
+          <td class="px-4 py-3 text-xs"><span class="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-amber-400 font-bold">${item.category}</span></td>
+          <td class="px-4 py-3 font-semibold text-slate-200">${item.desc}</td>
+          <td class="px-4 py-3 text-right text-rose-400 font-mono font-bold">${parseFloat(item.amount).toFixed(2)}</td>
+          <td class="px-4 py-3 text-xs text-slate-400 max-w-[200px] truncate" title="${item.notes || '-'}">${item.notes || '-'}</td>
+          <td class="px-4 py-3 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button type="button" onclick="editOverheadRecord(${originalIndex})" class="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 px-2 py-1 rounded text-xs transition">Edit</button>
+              <button type="button" onclick="openDeleteModal('overhead', ${originalIndex})" class="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-500 px-2 py-1 rounded text-xs transition">Del</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      safeCreateIcons();
+    }
+
+    function updateCommissionTable() {
+      const tbody = document.getElementById('commission-table-body');
+      tbody.innerHTML = '';
+
+      const monthSmartFilter = document.getElementById('commission-month-smart-filter').value;
+      const yearSmartFilter = document.getElementById('commission-year-smart-filter').value;
+      
+      const filteredSalesForComm = sales.filter(s => matchesSmartDateFilter(s.date, monthSmartFilter, yearSmartFilter));
+
+      const picMap = {};
+      filteredSalesForComm.forEach(s => {
+        const pic = s.PIC.trim() || 'Unassigned';
+        if (!picMap[pic]) picMap[pic] = { count: 0, sales: 0, cost: 0, comm: 0, netKeep: 0 };
+        picMap[pic].count++;
+        picMap[pic].sales += parseFloat(s.sales) || 0;
+        picMap[pic].cost += parseFloat(s.cost) || 0;
+        picMap[pic].comm += parseFloat(s.commission) || 0;
+        picMap[pic].netKeep += parseFloat(s.netProfit) || 0;
+      });
+
+      const pics = Object.keys(picMap);
+      const totalItems = pics.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+      if (commissionCurrentPage > totalPages) commissionCurrentPage = totalPages;
+      if (commissionCurrentPage < 1) commissionCurrentPage = 1;
+
+      const startIndex = (commissionCurrentPage - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+      const paginatedPics = pics.slice(startIndex, endIndex);
+
+      document.getElementById('commission-records-info').innerText = `Showing ${totalItems > 0 ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} records`;
+      document.getElementById('commission-prev-btn').disabled = commissionCurrentPage === 1;
+      document.getElementById('commission-next-btn').disabled = commissionCurrentPage === totalPages;
+
+      if (paginatedPics.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No technician transaction history.</td></tr>`;
+        return;
+      }
+
+      paginatedPics.forEach(pic => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 text-left transition duration-150 border-b border-slate-800/50";
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-slate-100 flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-violet-600/30 text-violet-300 flex items-center justify-center font-bold text-xs">
+              ${pic.charAt(0).toUpperCase()}
+            </div>
+            <span>${pic}</span>
+          </td>
+          <td class="px-4 py-3 text-center font-bold text-slate-300">${picMap[pic].count}</td>
+          <td class="px-4 py-3 text-right text-slate-300 font-mono">${picMap[pic].sales.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-rose-500/80 font-mono">${picMap[pic].cost.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-amber-400 font-bold font-mono">${picMap[pic].comm.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right text-emerald-400 font-bold font-mono">${picMap[pic].netKeep.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function toggleWarrantyStatus(index) {
+      if (warrantyClaims[index]) {
+        warrantyClaims[index].status = warrantyClaims[index].status === 'completed' ? 'pending' : 'completed';
+        updateAllUI();
+        showToast("Warranty resolution status updated.");
+        autoSyncPush();
+      }
+    }
+
+    function quickPayDebtor(billNo) {
+      const idx = debtors.findIndex(d => d.billNo === billNo);
+      if (idx !== -1) {
+        const remaining = debtors[idx].balance;
+        if (remaining <= 0) {
+          showToast("This debtor balance is already settled.");
+          return;
+        }
+
+        const paymentInput = prompt(`Clear Outstanding Balance - RM ${remaining.toFixed(2)}.\nEnter Payment Amount (RM):`, remaining);
+        if (paymentInput === null) return;
+
+        const val = parseFloat(paymentInput) || 0;
+        if (val <= 0) {
+          showToast("Payment must be a positive number.");
+          return;
+        }
+
+        debtors[idx].paid += val;
+        debtors[idx].balance = Math.max(0, debtors[idx].total - debtors[idx].paid);
+        if (debtors[idx].balance === 0) {
+          debtors[idx].status = 'completed';
+        }
+
+        updateAllUI();
+        showToast(`Registered payment of RM ${val.toFixed(2)} for ${debtors[idx].name}.`);
+        autoSyncPush();
+      }
+    }
+
+    function editSalesRecord(billNo) {
+      const rec = sales.find(s => s.billNo === billNo);
+      if (rec) {
+        switchTab('tab-entry');
+        isManualCommission = true;
+        editingSalesBillNo = rec.billNo;
+
+        document.getElementById('form-billno').value = rec.billNo;
+        document.getElementById('form-date').value = rec.date;
+        document.getElementById('form-name').value = rec.name;
+        document.getElementById('form-phone').value = rec.phone;
+        document.getElementById('form-model').value = rec.model;
+        document.getElementById('form-item').value = rec.item;
+        document.getElementById('form-pic').value = rec.PIC;
+        document.getElementById('form-supplier').value = rec.supplier;
+        document.getElementById('form-sales').value = rec.sales;
+        document.getElementById('form-cost').value = rec.cost;
+        document.getElementById('form-loss').value = rec.loss || 0;
+        document.getElementById('form-commission').value = rec.commission || 0;
+        document.getElementById('form-profit').value = (rec.sales - rec.cost).toFixed(2);
+        document.getElementById('form-net-profit').value = (rec.sales - rec.cost - rec.commission - rec.loss).toFixed(2);
+        document.getElementById('form-note').value = rec.note;
+
+        document.getElementById('sales-submit-btn').innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 inline mr-1"></i> Update Sale Record`;
+        safeCreateIcons();
+        smoothScrollToTop();
+        showToast(`Loaded ${billNo} into input form fields!`);
+      }
+    }
+
+    function editWarrantyRecord(originalIndex) {
+      const claim = warrantyClaims[originalIndex];
+      if (claim) {
+        switchTab('tab-warranty');
+        editingWarrantyIdx = originalIndex;
+
+        document.getElementById('warranty-billno').value = claim.billNo;
+        document.getElementById('warranty-date').value = claim.date;
+        document.getElementById('warranty-name').value = claim.name;
+        document.getElementById('warranty-phone').value = claim.phone;
+        document.getElementById('warranty-model').value = claim.model;
+        document.getElementById('warranty-item').value = claim.item;
+        document.getElementById('warranty-supplier').value = claim.supplier || '';
+        document.getElementById('warranty-status').value = claim.status;
+        document.getElementById('warranty-cost').value = claim.cost;
+        document.getElementById('warranty-loss').value = claim.loss || 0;
+        document.getElementById('warranty-notes').value = claim.notes || '';
+
+        document.getElementById('warranty-submit-btn').innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 inline mr-1"></i> Update Warranty Claim`;
+        safeCreateIcons();
+        smoothScrollToTop();
+        showToast(`Loaded warranty claim for ${claim.billNo} into input fields!`);
+      }
+    }
+
+    function editDebtorRecord(billNo) {
+      const debtor = debtors.find(d => d.billNo === billNo);
+      if (debtor) {
+        switchTab('tab-debtor');
+        editingDebtorBillNo = billNo;
+
+        document.getElementById('debtor-billno').value = debtor.billNo;
+        document.getElementById('debtor-name').value = debtor.name;
+        document.getElementById('debtor-phone').value = debtor.phone;
+        document.getElementById('debtor-total').value = debtor.total;
+        document.getElementById('debtor-paid').value = debtor.paid;
+        document.getElementById('debtor-balance').value = debtor.balance;
+        document.getElementById('debtor-repair-date').value = debtor.repairDate;
+        document.getElementById('debtor-followup-date').value = debtor.followupDate || '';
+        document.getElementById('debtor-notes').value = debtor.notes || '';
+        document.getElementById('debtor-status').value = debtor.status;
+
+        document.getElementById('debtor-submit-btn').innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 inline mr-1"></i> Update Debtor Profile`;
+        safeCreateIcons();
+        smoothScrollToTop();
+        showToast(`Loaded debtor profile ${billNo} into input fields!`);
+      }
+    }
+
+    function editStockRecord(originalIndex) {
+      const stock = stockRecords[originalIndex];
+      if (stock) {
+        switchTab('tab-stock');
+        editingStockIdx = originalIndex;
+
+        document.getElementById('stock-type').value = stock.type || 'OUT';
+        document.getElementById('stock-date').value = stock.date;
+        document.getElementById('stock-item-name').value = stock.item;
+        document.getElementById('stock-supplier').value = stock.supplier || '';
+        document.getElementById('stock-qty').value = stock.qty;
+        document.getElementById('stock-unit-cost').value = stock.cost;
+        document.getElementById('stock-reason').value = stock.reason;
+        document.getElementById('stock-pic').value = stock.PIC;
+        document.getElementById('stock-notes').value = stock.notes || '';
+
+        document.getElementById('stock-submit-btn').innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 inline mr-1"></i> Update Inventory Record`;
+        safeCreateIcons();
+        smoothScrollToTop();
+        showToast(`Loaded stock record into input fields!`);
+      }
+    }
+
+    function editOverheadRecord(originalIndex) {
+      const overhead = overheads[originalIndex];
+      if (overhead) {
+        switchTab('tab-overhead');
+        editingOverheadIdx = originalIndex;
+
+        document.getElementById('overhead-date').value = overhead.date;
+        document.getElementById('overhead-category').value = overhead.category;
+        document.getElementById('overhead-desc').value = overhead.desc;
+        document.getElementById('overhead-amount').value = overhead.amount;
+        document.getElementById('overhead-notes').value = overhead.notes || '';
+
+        document.getElementById('overhead-submit-btn').innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 inline mr-1"></i> Update Expense`;
+        safeCreateIcons();
+        smoothScrollToTop();
+        showToast(`Loaded overhead expense entry into input fields!`);
+      }
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('revenue-chart').getContext('2d');
+      const interval = document.getElementById('graph-period').value;
+
+      if (revenueChart) {
+        revenueChart.destroy();
+      }
+
+      const groupedData = {};
+
+      sales.forEach(s => {
+        let key = s.date; 
+        if (interval === 'month') key = s.date.substring(0, 7); 
+        if (interval === 'year') key = s.date.substring(0, 4); 
+
+        if (!groupedData[key]) groupedData[key] = { sales: 0, net: 0 };
+        groupedData[key].sales += parseFloat(s.sales) || 0;
+        groupedData[key].net += parseFloat(s.netProfit) || 0;
+      });
+
+      stockRecords.forEach(st => {
+        if(st.type === 'OUT') {
+            let key = st.date;
+            if (interval === 'month') key = st.date.substring(0, 7);
+            if (interval === 'year') key = st.date.substring(0, 4);
+            if (groupedData[key]) groupedData[key].net -= parseFloat(st.total) || 0;
+        }
+      });
+
+      overheads.forEach(o => {
+        let key = o.date;
+        if (interval === 'month') key = o.date.substring(0, 7);
+        if (interval === 'year') key = o.date.substring(0, 4);
+        if (groupedData[key]) groupedData[key].net -= parseFloat(o.amount) || 0;
+      });
+
+      const sortedKeys = Object.keys(groupedData).sort();
+      const salesSeries = sortedKeys.map(k => groupedData[k].sales);
+      const netSeries = sortedKeys.map(k => groupedData[k].net);
+
+      const chartLabels = sortedKeys.length > 0 ? sortedKeys : ['No Data'];
+      const chartSales = salesSeries.length > 0 ? salesSeries : [0];
+      const chartNet = netSeries.length > 0 ? netSeries : [0];
+
+      revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [
+            {
+              label: 'Gross Sales Volume (RM)',
+              data: chartSales,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              fill: true,
+              tension: 0.3,
+              borderWidth: 3,
+              pointBackgroundColor: '#3b82f6',
+              pointRadius: 4
+            },
+            {
+              label: 'Net Profits Target (RM)',
+              data: chartNet,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              fill: true,
+              tension: 0.3,
+              borderWidth: 3,
+              pointBackgroundColor: '#10b981',
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#94a3b8', font: { size: 11, weight: 'bold' } } },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.dataset.label.split('(')[0]}: RM ${context.parsed.y.toFixed(2)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function initEndpointSyncUI() {
+      const urlInput = document.getElementById('sheet-endpoint-url');
+      urlInput.value = sheetEndpoint;
+
+      updateSyncStatusWidget();
+
+      document.getElementById('save-endpoint-btn').addEventListener('click', function() {
+        let url = urlInput.value.trim();
+        if (!url) {
+          alert("Please enter a valid Apps Script Web App URL first.");
+          return;
+        }
+        
+        url = url.split('?')[0];
+        if(url.endsWith('/edit')) {
+            url = url.replace('/edit', '/exec');
+        }
+
+        sheetEndpoint = url;
+        localStorage.setItem('rexstop_sheet_url', url);
+        updateSyncStatusWidget();
+        
+        const btn = this;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `Testing Connection... Please wait.`;
+        btn.classList.add('opacity-75', 'cursor-wait');
+        btn.disabled = true;
+
+        fetch(sheetEndpoint, { method: 'GET', redirect: 'follow' })
+          .then(response => response.text())
+          .then(text => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('opacity-75', 'cursor-wait');
+            btn.disabled = false;
+
+            if (text.includes('Sign in - Google Accounts')) {
+                alert("❌ CONNECTION FAILED: Google is blocking access.\n\nFIX: Go to Apps Script > Manage Deployments > Edit. You MUST set 'Who has access' to 'ANYONE'.");
+                return;
+            }
+            if (text.includes('<html')) {
+                alert("❌ CONNECTION FAILED: Google returned a webpage instead of database data.\n\nFIX: Ensure your URL ends exactly with '/exec' and 'Execute as' is set to 'Me'.");
+                return;
+            }
+
+            try {
+                const data = JSON.parse(text);
+                if (data.status === 'success') {
+                    alert("✅ CONNECTION SUCCESSFUL!\n\nYour system is securely linked to Google Sheets. Press OK to download your data.");
+                    syncDataPull(); 
+                } else {
+                    alert("⚠️ CONNECTED, BUT SCRIPT FAILED:\n" + data.message);
+                }
+            } catch (e) {
+                 alert("❌ UNKNOWN ERROR: Google returned weird data. Double check your code deployment.");
+            }
+          })
+          .catch(err => {
+             btn.innerHTML = originalHtml;
+             btn.classList.remove('opacity-75', 'cursor-wait');
+             btn.disabled = false;
+             alert("❌ NETWORK ERROR: Could not reach Google. Check your internet connection or make sure the URL is correct.");
+          });
+      });
+
+      document.getElementById('disconnect-endpoint-btn').addEventListener('click', () => {
+        sheetEndpoint = "";
+        localStorage.removeItem('rexstop_sheet_url');
+        urlInput.value = "";
+        
+        sales = []; warrantyClaims = []; debtors = []; stockRecords = []; overheads = [];
+        
+        updateSyncStatusWidget();
+        updateAllUI();
+        showToast("Disconnected from Cloud. Local memory wiped.");
+      });
+
+      document.getElementById('manual-pull-btn').addEventListener('click', syncDataPull);
+      document.getElementById('manual-push-btn').addEventListener('click', syncDataPush);
+
+      document.getElementById('copy-script-btn').addEventListener('click', () => {
+        const scriptCode = document.getElementById('sheet-script-code').innerText;
+        const textarea = document.createElement('textarea');
+        textarea.value = scriptCode;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          showToast("Apps Script code copied! Paste it in your Google Script editor.");
+        } catch (err) {
+          showToast("Error copying code.");
+        }
+        document.body.removeChild(textarea);
+      });
+    }
+
+    function updateSyncStatusWidget() {
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+      const pullBtn = document.getElementById('manual-pull-btn');
+      const pushBtn = document.getElementById('manual-push-btn');
+
+      if (sheetEndpoint) {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+        text.innerText = "Connected to Google Sheets";
+        pullBtn.removeAttribute('disabled');
+        pushBtn.removeAttribute('disabled');
+      } else {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
+        text.innerText = "Offline (Awaiting Sheet URL)";
+        pullBtn.setAttribute('disabled', 'true');
+        pushBtn.setAttribute('disabled', 'true');
+      }
+    }
+
+    function autoSyncPush() {
+      if (sheetEndpoint) {
+        syncDataPush();
+      }
+    }
+
+    function syncDataPull() {
+      if (!sheetEndpoint) return;
+      
+      const btn = document.getElementById('manual-pull-btn');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = `Downloading Database...`;
+      btn.disabled = true;
+      
+      const cacheBusterUrl = sheetEndpoint + '?t=' + new Date().getTime();
+
+      fetch(cacheBusterUrl, { method: 'GET', redirect: 'follow' })
+        .then(response => response.text())
+        .then(text => {
+          btn.innerHTML = originalHtml;
+          btn.disabled = false;
+          
+          try {
+            if(text.includes('Sign in - Google Accounts')) {
+                alert("CRITICAL SYNC ERROR: Your Google Script is requiring a login. \n\nYou must re-deploy the script and set 'Who has access' to 'ANYONE'.");
+                return;
+            }
+            if(text.includes('<html')) {
+                alert("CRITICAL SYNC ERROR: Google returned a webpage instead of data.\n\nMake sure 'Execute As' is set to 'Me' in your script deployment.");
+                return;
+            }
+
+            const res = JSON.parse(text);
+            if (res.status === 'success' && res.data) {
+              if (res.data.Sales) sales = res.data.Sales;
+              if (res.data.Warranty) warrantyClaims = res.data.Warranty;
+              if (res.data.Debtors) debtors = res.data.Debtors;
+              if (res.data.StockCount) stockRecords = res.data.StockCount; // Updated mapping
+              if (res.data.Overheads) overheads = res.data.Overheads;
+
+              sales.forEach(s => { s.sales = parseFloat(s.sales)||0; s.cost = parseFloat(s.cost)||0; s.loss = parseFloat(s.loss)||0; s.commission = parseFloat(s.commission)||0; s.netProfit = parseFloat(s.netProfit)||0; });
+              debtors.forEach(d => { d.total = parseFloat(d.total)||0; d.paid = parseFloat(d.paid)||0; d.balance = parseFloat(d.balance)||0; });
+              stockRecords.forEach(st => { st.qty = parseInt(st.qty)||0; st.cost = parseFloat(st.cost)||0; st.total = parseFloat(st.total)||0; });
+              overheads.forEach(o => { o.amount = parseFloat(o.amount)||0; });
+              
+              salesCurrentPage = 1; warrantyCurrentPage = 1; debtorCurrentPage = 1; stockInCurrentPage = 1; stockOutCurrentPage = 1; overheadCurrentPage = 1; commissionCurrentPage = 1;
+
+              updateAllUI();
+              showToast("Database successfully synced from Cloud!");
+            } else {
+              alert("Google responded, but with an error: \n" + text);
+            }
+          } catch (e) {
+            console.error("Failed to parse Google response:", text);
+            alert("Google blocked the connection. It returned this instead of Data:\n\n" + text.substring(0, 300) + "...\n\nCHECK: Is 'Who has access' set to 'Anyone'?");
+          }
+        })
+        .catch(err => {
+          btn.innerHTML = originalHtml;
+          btn.disabled = false;
+          alert("Network Error during download: " + err.message);
+        });
+    }
+
+    function syncDataPush() {
+      if (!sheetEndpoint) return;
+
+      const btn = document.getElementById('manual-push-btn');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = `Uploading to Cloud...`;
+      btn.disabled = true;
+
+      const payload = {
+        Sales: sales,
+        Warranty: warrantyClaims,
+        Debtors: debtors,
+        StockCount: stockRecords, // Updated mapping
+        Overheads: overheads
+      };
+
+      fetch(sheetEndpoint, {
+        method: 'POST',
+        redirect: 'follow', 
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.text())
+      .then(text => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        try {
+          const data = JSON.parse(text);
+          if(data.status === 'success') {
+            showToast("Live changes securely saved to Google Sheets!");
+          } else {
+            alert("Google Script Error: " + data.message);
+          }
+        } catch (e) {
+          alert("Upload Failed. Make sure 'Who has access' is set to 'Anyone' in your Apps Script:\n\n" + text.substring(0, 300));
+        }
+      })
+      .catch(err => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        alert("Upload Error: " + err.message);
+      });
+    }
+
+    let toastTimeout;
+    function showToast(message, isSuccess = true) {
+      const toast = document.getElementById('toast');
+      const textElem = document.getElementById('toast-message');
+      
+      textElem.innerText = message;
+      
+      toast.classList.remove('translate-y-10', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      if (toastTimeout) clearTimeout(toastTimeout);
+      
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-10', 'opacity-0');
+      }, 4000);
+    }
+  </script>
+ </body>
+</html>
